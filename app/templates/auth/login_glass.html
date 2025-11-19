@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login CRM | Modern Glass Style</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        /* Variables y Colores */
+        :root {
+            --glass-bg-light: rgba(255, 255, 255, 0.8);
+            --glass-bg-form: rgba(255, 255, 255, 0.95); /* Más sólido para mejor visibilidad */
+            --primary-blue: #007bff;
+            --font-dark: #1e3a5f;
+            --font-light: #ffffff;
+            --shadow-soft: rgba(0, 0, 0, 0.15);
+        }
+
+        /* RESET BÁSICO */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #74a0e9 0%, #1f4788 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--font-dark);
+        }
+
+        /* CONTENEDOR PRINCIPAL DEL FORMULARIO (LA TARJETA GLASS) */
+        .login-container {
+            width: 90%;
+            max-width: 400px;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+
+            /* PROPIEDADES GLASSMORFISM */
+            background-color: var(--glass-bg-light);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 30px var(--shadow-soft);
+
+            transition: transform 0.3s ease;
+        }
+
+        .login-container:hover {
+             transform: translateY(-5px); /* Pequeño lift al pasar el mouse */
+        }
+
+        /* ESTILO PARA EL ÁREA DEL LOGO */
+        .logo-area {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        /* ESTILO PARA LA IMAGEN DEL LOGO */
+        .logo-area img {
+            max-width: 150px; /* Tamaño máximo para el logo */
+            height: auto; /* Mantiene la proporción */
+            display: block; /* Para centrarlo con margin auto */
+            margin: 0 auto; /* Centra la imagen */
+            /* Si tu logo tiene un fondo, esto lo haría "transparente" */
+            /* filter: drop-shadow(0 2px 5px rgba(0,0,0,0.2)); */
+            /* Si necesitas invertir los colores para fondos oscuros: */
+            /* filter: invert(1) grayscale(100%) brightness(150%) drop-shadow(0 2px 5px rgba(0,0,0,0.2)); */
+        }
+
+
+        .login-container h1 {
+            color: var(--font-dark);
+            margin-bottom: 5px;
+            font-size: 2em;
+        }
+
+        .login-container p {
+            color: #6c757d;
+            margin-bottom: 30px;
+        }
+
+        /* Estilo para los campos de entrada */
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+            position: relative;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px 14px 14px 45px; /* Dejamos espacio para el icono */
+            border: none;
+            border-radius: 12px;
+            background-color: var(--glass-bg-form);
+            color: var(--font-dark);
+            font-size: 1em;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: box-shadow 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.4);
+        }
+
+        /* Estilo para el icono dentro del campo */
+        .input-group .bi {
+            position: absolute;
+            top: 50%;
+            left: 15px;
+            transform: translateY(-50%);
+            color: #6c757d;
+            font-size: 1.2em;
+        }
+
+        /* Botón de Submit */
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 6px 15px rgba(0, 123, 255, 0.5);
+            transition: background-color 0.2s, box-shadow 0.2s;
+            margin-top: 20px;
+        }
+
+        .submit-btn:hover {
+            background-color: #0056b3;
+            box-shadow: 0 8px 20px rgba(0, 123, 255, 0.7);
+        }
+
+        /* Enlaces de ayuda */
+        .help-link {
+            display: block;
+            margin-top: 25px;
+            color: var(--primary-blue);
+            text-decoration: none;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+
+        .help-link:hover {
+            opacity: 0.8;
+            text-decoration: underline;
+        }
+    </style>
+    </head>
+<body>
+
+    <div class="login-container">
+
+        <div class="logo-area">
+            <img src="/static/img/3ioplus.png" alt="Tu Logo">
+        </div>
+
+        <h1>Bienvenido</h1>
+        <p>Inicia sesión para acceder a tu panel.</p>
+
+        <form>
+            <div class="input-group">
+                <i class="bi bi-person"></i> <input type="text" id="username" name="username" placeholder="Usuario o Email" required>
+            </div>
+
+            <div class="input-group">
+                <i class="bi bi-lock"></i> <input type="password" id="password" name="password" placeholder="Contraseña" required>
+            </div>
+
+            <button type="submit" class="submit-btn">
+                Ingresar
+            </button>
+        </form>
+
+        <a href="#" class="help-link">¿Olvidaste tu contraseña?</a>
+    </div>
+
+</body>
+</html>

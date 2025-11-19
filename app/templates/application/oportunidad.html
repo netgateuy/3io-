@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oportunidad #{{ oportunidad.id }} | CRM Glass</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        /* [BLOQUE COMPLETO DE CSS DE TU CÓDIGO ANTERIOR] */
+        /* Variables Globales */
+        :root {
+            --sidebar-width: 260px;
+            --sidebar-closed-width: 80px;
+            --glass-bg-light: rgba(255, 255, 255, 0.8);
+            --glass-bg-dark: rgba(20, 37, 60, 0.85);
+            --primary-blue: #007bff;
+            --font-dark: #1e3a5f;
+            --font-light: #ffffff;
+            --shadow-soft: rgba(0, 0, 0, 0.15);
+            --transition-speed: 0.3s;
+            --logo-bg: rgba(255, 255, 255, 0.2);
+            --accent-blue: rgba(0, 123, 255, 0.7);
+            --glass-bg-form-input: rgba(255, 255, 255, 0.9);
+            /* ESTILOS DE ETAPAS (Timeline) */
+            --stage-color-prospecto: #ffc107;
+            --stage-color-propuesta: #007bff;
+            --stage-color-negociacion: #28a745;
+            --stage-color-cerrada: #dc3545;
+        }
+
+        /* RESET BÁSICO Y LAYOUT FLEX */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #74a0e9 0%, #1f4788 100%);
+            display: flex;
+            min-height: 100vh;
+            color: var(--font-dark);
+        }
+        /* [El resto de tu CSS general: sidebar, content, form-grid, glass-card, etc.] */
+        .sidebar { width: var(--sidebar-width); background-color: var(--glass-bg-dark); color: white; height: 100vh; position: fixed; overflow-x: hidden; padding-top: 20px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-right: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 2px 0 15px rgba(0, 0, 0, 0.3); z-index: 100; transition: width var(--transition-speed) ease; display: flex; flex-direction: column; }
+        .sidebar.closed { width: var(--sidebar-closed-width); }
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; padding: 0 20px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); margin-bottom: 15px; width: var(--sidebar-width); padding-right: 15px; transition: width var(--transition-speed) ease; }
+        .sidebar.closed .sidebar-header { width: var(--sidebar-closed-width); justify-content: center; padding: 0 0 20px 0; }
+        .sidebar.closed .logo-container { display: none; }
+        .logo-container { background-color: var(--logo-bg); border-radius: 8px; padding: 5px; display: flex; align-items: center; justify-content: center; }
+        .logo-container img { max-height: 30px; width: auto; }
+        .toggle-btn { background: none; color: white; border: 1px solid rgba(255, 255, 255, 0.4); padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 1.2em; display: flex; align-items: center; justify-content: center; transition: transform var(--transition-speed) ease; }
+        .sidebar.closed .toggle-btn { transform: rotate(180deg); }
+        .menu ul { list-style: none; }
+        .menu li a { display: flex; align-items: center; padding: 12px 15px; text-decoration: none; color: #dbe4f1; border-radius: 8px; margin: 5px 10px; line-height: 1.2; }
+        .menu li a .bi { font-size: 1.3em; margin-right: 15px; width: 25px; text-align: center; line-height: 0; }
+        .sidebar.closed .menu li a span { display: none; }
+        .sidebar.closed .menu li a { justify-content: center; padding: 12px 0; margin: 5px 15px; }
+        .menu li a.active { background-color: var(--primary-blue); box-shadow: 0 2px 8px rgba(0, 123, 255, 0.5); }
+
+        .content { margin-left: var(--sidebar-width); flex-grow: 1; padding: 25px 30px; width: calc(100% - var(--sidebar-width)); color: var(--font-dark); transition: margin-left var(--transition-speed) ease, width var(--transition-speed) ease; }
+        .content.shifted { margin-left: var(--sidebar-closed-width); width: calc(100% - var(--sidebar-closed-width)); }
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; border-radius: 12px; background-color: var(--glass-bg-light); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 4px 30px var(--shadow-soft); margin-bottom: 30px; }
+        .navbar input[type="text"] { padding: 10px 15px; width: 350px; background-color: rgba(255, 255, 255, 1); border: none; border-radius: 20px; font-size: 0.9em; color: var(--font-dark); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); }
+        .user-info span { color: var(--font-dark); font-weight: 600; }
+         h1 { color: var(--font-light); text-shadow: 0 1px 2px var(--shadow-soft); margin-bottom: 25px; font-size: 1.5em; }
+       .glass-card { background-color: var(--glass-bg-light); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 4px 30px var(--shadow-soft); border-radius: 15px; padding: 30px; margin-bottom: 30px; }
+        h2 { color: var(--font-dark); font-size: 1.5em; margin-bottom: 20px; border-bottom: 1px solid rgba(0, 0, 0, 0.1); padding-bottom: 10px; }
+
+        /* Estilos de Formulario (Normal y Grid) */
+        .form-grid { display: grid; gap: 20px; margin-bottom: 20px; }
+        .form-grid-3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+        .form-grid-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+        .form-field label { display: block; margin-bottom: 5px; font-weight: 600; color: #444; font-size: 0.9em; }
+        .form-field input, .form-field select, .form-field textarea { width: 100%; padding: 10px; border: none; border-radius: 8px; background-color: rgba(255, 255, 255, 0.95); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); font-size: 1em; color: var(--font-dark); }
+        .form-field input:focus, .form-field select:focus, .form-field textarea:focus { outline: none; box-shadow: 0 0 0 2px var(--primary-blue); }
+
+        /* Estilos de Tabla y Botones */
+        .products-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
+        .products-table th, .products-table td { border: 1px solid rgba(0, 0, 0, 0.1); padding: 10px; text-align: left; }
+        .products-table th { background-color: rgba(0, 123, 255, 0.1); color: var(--font-dark); font-weight: 700; }
+        .action-button { padding: 10px 20px; border: none; border-radius: 8px; font-size: 1em; font-weight: 600; cursor: pointer; transition: background-color 0.2s, box-shadow 0.2s; margin-top: 15px; }
+        .btn-add { background-color: #28a745; color: white; float: right; box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3); }
+        .btn-add:hover { background-color: #1e7e34; }
+        .btn-save { background-color: var(--primary-blue); color: white; margin-right: 15px; box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3); }
+        .btn-save:hover { background-color: #0056b3; }
+        /* Nuevos estilos específicos para la vista detalle */
+        .detail-item { padding: 5px 0; }
+        .detail-item label { font-weight: 700; color: var(--primary-blue); display: block; font-size: 0.9em; }
+        .detail-item p { font-size: 1.1em; margin-top: 2px; color: var(--font-dark); }
+        .header-detail { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+        .header-detail .client-title  { color: var(--font-dark); text-shadow: none; margin-bottom: 5px; }
+
+        /* Estilos del Timeline de Etapas */
+        .timeline-container { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding: 20px 0; border-bottom: 1px solid rgba(0, 0, 0, 0.1); }
+        .stage { text-align: center; position: relative; flex-grow: 1; }
+        .stage-icon { width: 30px; height: 30px; border-radius: 50%; background-color: #ccc; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 5px; font-size: 1.1em; z-index: 10; position: relative; }
+        .stage.active .stage-icon { background-color: var(--stage-color-propuesta); box-shadow: 0 0 0 5px rgba(0, 123, 255, 0.3); }
+        .stage-label { font-size: 0.85em; color: #555; }
+        .stage:not(:last-child)::after { content: ''; position: absolute; top: 15px; right: -50%; height: 2px; width: 100%; background-color: #ddd; z-index: 5; }
+        .stage.active:not(:last-child)::after { background-color: var(--stage-color-propuesta); }
+        .stage.completed .stage-icon { background-color: var(--stage-color-negociacion); }
+        .stage.completed:not(:last-child)::after { background-color: var(--stage-color-negociacion); }
+    /* Estilo para los campos de solo visualización */
+    .form-field-display {
+        padding: 5px 0;
+    }
+    .form-field-display label {
+        display: block;
+        font-weight: 700;
+        color: #444;
+        font-size: 0.9em;
+        margin-bottom: 3px;
+    }
+    .form-field-display p {
+        font-size: 1.1em;
+        color: var(--font-dark);
+        background-color: rgba(0, 0, 0, 0.05); /* Sutil fondo gris */
+        padding: 8px;
+        border-radius: 5px;
+        word-break: break-word;
+    }
+
+    .highlight-id {
+        /* Usamos un color de alto contraste (el amarillo de prospecto) */
+        color: var(--stage-color-prospecto) !important;
+        font-weight: 900 !important; /* Asegura máxima negrita */
+        /* Agregamos un brillo sutil para que el texto resalte sobre el fondo glass */
+        text-shadow: 0 0 5px rgba(255, 193, 7, 0.7);
+        /* Se aplica a ambos: ID de Oportunidad y ID de Cliente */
+    }
+
+
+    .highlight-cliente {
+        /* Usamos el azul primario definido en tus variables */
+        color: var(--primary-blue) !important;
+        font-weight: 900 !important; /* Asegura máxima negrita */
+        /* Se añade un brillo azul para que resalte */
+        text-shadow: 0 0 5px rgba(0, 123, 255, 0.7);
+        /* Esto garantiza que el estilo se aplique sobre cualquier otro */
+    }
+
+    /* -------------------------------------- */
+        /* KEYFRAMES PARA LA ANIMACIÓN DE LATIDO */
+        /* -------------------------------------- */
+        @keyframes pulse-active {
+            0% {
+                box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7); /* Empieza sin sombra o con poca */
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(0, 123, 255, 0.3); /* La sombra se expande un poco */
+                transform: scale(1.05); /* El icono se agranda ligeramente */
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7); /* Vuelve al inicio, se puede ajustar */
+                transform: scale(1);
+            }
+        }
+        /* Estilos para el estado ACTIVE (AZUL - Etapa actual) */
+        .stage.active .stage-icon {
+            background-color: var(--primary-blue); /* Azul principal o color de etapa actual */
+            /* box-shadow: 0 0 0 5px rgba(0, 123, 255, 0.5); /* Remueve o ajusta esta sombra si usas la animación */
+            transform: scale(1); /* Asegura el tamaño inicial */
+
+            /* --- APLICACIÓN DE LA ANIMACIÓN DE LATIDO --- */
+            animation: pulse-active 2s infinite ease-out; /* Nombre, duración, repetición y curva de tiempo */
+        }
+        .stage.active .stage-label {
+            color: var(--primary-blue);
+            font-weight: 700;
+        }
+
+         /* --------------------------------- */
+        /* ESTILOS DE MODAL Y FORMULARIO DINÁMICO UNIFICADOS (CORRECCIÓN FINAL) */
+        /* --------------------------------- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none;
+            justify-content: center; align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active { display: flex; opacity: 1; }
+
+        .modal-content {
+            background-color: var(--glass-bg-light);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 18px; padding: 30px; width: 90%; max-width: 500px;
+            box-shadow: 0 8px 30px var(--shadow-soft);
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+            max-height: 90vh; /* Permite el scroll del modal en general */
+            overflow-y: auto;
+        }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+
+        .modal-content h3 { color: var(--font-dark); border-bottom: 1px solid rgba(0, 0, 0, 0.2); padding-bottom: 10px; margin-bottom: 20px; }
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .btn-cancel { background-color: #6c757d; color: white; }
+        .btn-cancel:hover { background-color: #5a6268; }
+
+        .form-field-embed { margin-bottom: 15px; }
+
+        /* Las etiquetas e inputs del modal (tanto fijos como dinámicos) ahora usan estos estilos */
+        .form-field-embed label {
+            display: block; font-weight: 600; color: var(--font-dark); font-size: 0.95em; margin-bottom: 5px;
+        }
+        .form-field-embed input,
+        .form-field-embed select,
+        .form-field-embed textarea {
+            width: 100%; padding: 10px; border: none; border-radius: 10px;
+            background-color: var(--glass-bg-form-input);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
+            font-size: 1em; color: var(--font-dark); transition: box-shadow 0.2s;
+        }
+        .form-field-embed input:focus, .form-field-embed select:focus, .form-field-embed textarea:focus {
+            outline: none; box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.4);
+        }
+
+</style>
+</head>
+<body>
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-container">
+                <img src="/static/img/3ioplus.png" alt="CRM Logo" title="Tu Logo PNG">
+            </div>
+            <button id="toggleBtn" class="toggle-btn" title="Plegar/Desplegar Menú">&#9776;</button>
+        </div>
+        <nav class="menu">
+            <ul>
+                <li><a href="#"><i class="bi bi-speedometer2"></i> <span>Dashboard</span></a></li>
+                <li><a href="#"><i class="bi bi-people"></i> <span>Clientes</span></a></li>
+                <li><a href="#"><i class="bi bi-file-earmark-text"></i> <span>Contratos</span></a></li>
+                <li class="active"><a href="/application/oportunidades" class="active"><i class="bi bi-bag-check"></i><span>Oportunidades</span></a></li>
+                <li><a href="#"><i class="bi bi-calendar-check"></i> <span>Tareas y Agenda</span></a></li>
+                <li><a href="#"><i class="bi bi-graph-up-arrow"></i> <span>Reportes</span></a></li>
+                <hr style="margin: 15px 20px; border-color: rgba(255, 255, 255, 0.2);">
+                <li><a href="#"><i class="bi bi-gear"></i> <span>Configuración</span></a></li>
+                <li><a href="#"><i class="bi bi-box-arrow-right"></i> <span>Cerrar Sesión</span></a></li>
+            </ul>
+        </nav>
+    </aside>
+    <main id="content" class="content">
+        <header class="navbar">
+            <input type="text" placeholder="Buscar clientes, tareas o reportes...">
+            <div class="user-info">
+                <span>Hola, Juan Miranda</span>
+            </div>
+        </header>
+        <div class="header-detail">
+            <div class="client-title">
+                <h1><i class="bi bi-rocket-takeoff-fill"></i> Oportunidad &nbsp;<span class="highlight-id">#{{ oportunidad.id }}</span></h1>
+            </div>
+            <div class="actions">
+                <button class="action-button btn-save"><i class="bi bi-pencil"></i> Editar</button>
+                <button class="action-button btn-cancel" style="background-color: var(--stage-color-prospecto);"><i class="bi bi-x-circle"></i> Cancelar</button>
+            </div>
+        </div>
+        <div class="glass-card">
+            <h2><i class="bi bi-bar-chart-steps"></i> Etapa de la oportunidad:</h2>
+            <div class="timeline-container">
+                {% set control = namespace(activa_encontrada=false) %}
+                {% for estado in estados %}
+                    {% set estado_clase = '' %}
+
+                    {# 1. Lógica para Etapas COMPLETADAS: Si tiene una fecha real #}
+                    {% if estado.fecharealizado is not none %}
+                        {% set estado_clase = 'completed' %}
+
+                    {# 2. Lógica para la Etapa ACTIVA: Si NO tiene fecha Y no hemos marcado otra como activa #}
+                    {% elif estado.fecharealizado is none and not control.activa_encontrada %}
+                        {% set estado_clase = 'active' %}
+                        {% set control.activa_encontrada = true %} {# Marcamos que ya la encontramos #}
+                    {% endif %}
+
+                    <div class="stage {{ estado_clase }}">
+                        <div class="stage-icon"><i class="bi {{ estado.icono }}"></i></div>
+                        <span class="stage-label">{{ estado.nombre }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="glass-card">
+            <h2><i class="bi bi-info-circle"></i> Datos de la Oportunidad</h2>
+            <div class="form-grid form-grid-3 client-details-grid">
+                <div class="form-field-display">
+                    <label>Fecha Alta</label>
+                    <p id="fechaalta">{{oportunidad.fechaalta}}</p>
+                </div>
+                 <div class="form-field-display">
+                    <label>Fecha Inicio</label>
+                    <p id="fechainicio">{{oportunidad.fechainicio}}</p>
+                </div>
+                <div class="form-field-display">
+                    <label>Tipo</label>
+                    <p id="idtipo">{{tipooportunidad.nombre}}</p>
+                </div>
+                <div class="form-field-display">
+                    <label>Responsable</label>
+                    <p id="responsable">{{usuario.first_name}} {{usuario.last_name}}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <h2><i class="bi bi-person-lines-fill"></i> Datos del Cliente - <span class="highlight-cliente">#{{ cliente.idCliente }}</span></h2>
+            <div class="form-grid form-grid-3 client-details-grid">
+
+                <div class="form-field-display">
+                    <label>Nombre y Apellido</label>
+                    <p id="cliNombreCompleto">{{cliente.cliNombre}} {{cliente.cliApellido}}</p>
+                </div>
+                <div class="form-field-display">
+                    <label>Razón Social / Fantasía</label>
+                    <p id="cliRazonFantasia">{{cliente.cliRazon}} - {{cliente.cliFantasia}}</p>
+                </div>
+                <div class="form-field-display">
+                    <label>Tipo Doc. / Nro. ID</label>
+                    <p id="nroIDDisplay">{{cliente.idTipoID}} - {{cliente.nroID}}</p>
+                </div>
+
+                <div class="form-field-display">
+                    <label>País / Departamento</label>
+                    <p id="cliUbicacion">{{cliente.idPais}} - {{subpais.nombre}}</p>
+                </div>
+                <div class="form-field-display">
+                    <label>Teléfono / Celular</label>
+                        <p id="cliContactoNums">{{cliente.Telefono}} - {{cliente.Celular}}</p>
+                </div>
+                <div class="form-field-display">
+                    <label>Email de Aviso</label>
+                    <p id="eMailAvisoDisplay">{{cliente.eMailAviso}}</p>
+                </div>
+            </div>
+        </div>
+        <div class="glass-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2><i class="bi bi-file-text"></i> Contratos y Productos Asociados</h2>
+                <button type="button" class="action-button btn-add" onclick="abrirModalNuevoContrato()">
+                    <i class="bi bi-file-earmark-plus"></i> Añadir Nuevo Contrato
+                </button>
+            </div>
+
+            <table class="products-table">
+                <thead>
+                    <tr>
+                        <th>Id.</th>
+                        <th>Fecha alta</th>
+                        <th>Alta por</th>
+                        <th>Fecha vencimiento</th>
+                        <th>Fecha tope</th>
+                        <th>Fecha confirmado</th>
+                    </tr>
+                </thead>
+                <tbody id="contratos-lista">
+                    {% if contratos|length > 0 %}
+                        {% for contrato in contratos %}
+                        <tr>
+                            <td>{{ contrato.id }}</td>
+                            <td>{{ contrato.fechaalta }}</td>
+                            <td>{{ contrato.altapor }}</td>
+                            <td>{{ contrato.fechavencimiento }}</td>
+                            <td><span style="font-weight: 600; color: #28a745;">Confirmado</span></td>
+                            <td>
+                                <a href="/contrato/{{ contrato.id }}" title="Ver Detalle"><i class="bi bi-eye"></i></a>
+                                <button onclick="eliminarContrato({{ contrato.id }})" style="background: none; border: none; cursor: pointer; color: #dc3545;" title="Desvincular"><i class="bi bi-link-slash">&nbsp;</i></button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: #888;">Aún no hay contratos asociados a esta oportunidad.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="glass-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2><i class="bi bi-list-task"></i> Acciones</h2>
+                <button type="button" class="action-button btn-add" onclick="abrirModal()">
+                    <i class="bi bi-file-earmark-plus"></i> Nueva acci&oacute;n
+                </button>
+            </div>
+
+            <table class="products-table">
+                <thead>
+                    <tr>
+                        <th>Id.</th>
+                        <th>Tipo Accion</th>
+                        <th>Fecha Alta</th>
+                        <th>Alta por</th>
+                        <th>Observaciones</th>
+                    </tr>
+                </thead>
+                <tbody id="contratos-lista">
+                    {% if acciones|length > 0 %}
+                        {% for accion in acciones %}
+                        <tr>
+                            <td>{{ accion.id }}</td>
+                            <td>{{ accion.idtipoaccion }}</td>
+                            <td>{{ accion.fechaalta }}</td>
+                            <td>{{ accion.altapor }}</td>
+                            <td>{{ accion.accion }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: #888;">Aún no hay acciones asociadas a la oportunidad.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+    <div id="modalaccion" class="modal-overlay">
+        <div class="modal-content">
+            <h3><i class="bi bi-list-task"></i> Nueva acción</h3>
+            <div id="formularioFijo">
+                <div class="form-field-embed">
+                    <label for="producto_seleccionado">Tipo de acción (*)</label>
+                    <select id="idtipoaccion" name="idtipoaccion" required>
+                        <option value="">-- Seleccione un tipo --</option>
+                        {% for tipoaccion in tiposaccion %}
+                        <option value="{{tipoaccion.id}}">{{tipoaccion.nombre}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-field-embed"><label for="producto_clausula">Acción</label><textarea id="accion" name="accion" rows="1" placeholder="Observaciones de la acción..."></textarea></div>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="action-button btn-save" onclick="agregarAccion()">Agregar</button>
+                <button type="button" class="action-button btn-cancel" onclick="cerrarModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        // JS para el sidebar
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleBtn = document.getElementById('toggleBtn');
+            const sidebar = document.getElementById('sidebar');
+            const content = document.getElementById('content');
+
+            toggleBtn.addEventListener('click', function() {
+                sidebar.classList.toggle('closed');
+                content.classList.toggle('shifted');
+            });
+        });
+
+        function abrirModal() {
+            const modal = document.getElementById('modalaccion');
+            // 2. Mostrar el modal
+            modal.classList.add('active');
+        }
+
+        function cerrarModal() {
+            document.getElementById('modalaccion').classList.remove('active');
+            document.getElementById('observaciones').value = '';
+        }
+
+        function agregarAccion(){
+             const jsonData = {};
+             jsonData["idoportunidad"] = {{ oportunidad.id }};
+             jsonData["idtipoaccion"] = document.getElementById("idtipoaccion").value;
+             jsonData["accion"] = document.getElementById("accion").value;
+             jsonData["altapor"] = "3io_COF";
+            // Damos de alta la accion
+            fetch('/api/accionoportunidad', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(jsonData) // convertís tu objeto a JSON real
+            })
+            .then(response => response.json()) // si el servidor devuelve JSON
+            .then(data => {
+                if(!data["error"]){
+                    id = jsonData["idoportunidad"];
+                    window.location.href = `/application/oportunidad/${id}`;
+                }else{
+                    console.log(data);
+                    alert("Error al intentar dar de alta la oportunidad." + data);
+                }
+            })
+            .catch(error => {
+              console.log(error);
+            });
+        }
+
+        // Simulación de la función para abrir el modal (debería abrir el formulario de Alta de Contrato)
+        function abrirModalNuevoContrato() {
+          window.location.href = "/application/alta-contrato/{{oportunidad.id}}";
+        }
+
+        function eliminarContrato(id) {
+            if (confirm(`¿Está seguro de desvincular el contrato ID ${id} de esta oportunidad?`)) {
+                alert(`Contrato ${id} desvinculado (Simulación).`);
+                // Aquí iría la lógica fetch para hacer DELETE o UPDATE en el backend
+            }
+        }
+
+    </script>
+</body>
+</html>

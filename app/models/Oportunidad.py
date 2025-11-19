@@ -1,0 +1,64 @@
+from app import db
+
+class Oportunidad(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    idtipo = db.Column(db.Integer)
+    fechaalta = db.Column(db.DateTime)
+    fechacancelado = db.Column(db.DateTime)
+    fechainicio = db.Column(db.Date)
+    fechafin = db.Column(db.Date)
+    idcliente = db.Column(db.Integer, unique=False)
+    responsable = db.Column(db.Integer, unique=False)
+    estado = db.Column(db.String(256), unique=False)
+
+
+class AccionOportunidad(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    idoportunidad = db.Column(db.Integer)
+    idtipoaccion = db.Column(db.Integer)
+    altapor = db.Column(db.String(256), unique=False)
+    fechaalta = db.Column(db.DateTime)
+    accion = db.Column(db.Text, unique=False)
+
+class TipoAccion(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    nombre = db.Column(db.String(256), unique=False)
+    descripcion = db.Column(db.Text, unique=False)
+    visible = db.Column(db.Boolean)
+    responsable = db.Column(db.Integer, unique=False)
+
+class TipoOportunidad(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    nombre = db.Column(db.String(256), unique=False)
+    descripcion = db.Column(db.Text, unique=False)
+    visible = db.Column(db.Boolean)
+
+class EstadoOportunidad(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    idoportunidad = db.Column(db.Integer)
+    idtipoportunidad = db.Column(db.Integer, unique=False)
+    idetapaoportunidad = db.Column(db.Integer, unique=False)
+    nombre = db.Column(db.String(256), unique=False)
+    descripcion = db.Column(db.Text, unique=False)
+    fechaalta = db.Column(db.DateTime)
+    fecharealizado = db.Column(db.DateTime)
+    predecesor = db.Column(db.Integer, unique=False)
+    notificar = db.Column(db.String(4096), unique=False)
+    sectorresponsable = db.Column(db.Integer, unique=False)
+    icono = db.Column(db.String(256), unique=False)
+
+class EtapaOportunidad(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    idtipoportunidad = db.Column(db.Integer, unique=False)
+    nombre = db.Column(db.String(256), unique=False)
+    descripcion = db.Column(db.Text, unique=False)
+    predecesor = db.Column(db.Integer, unique=False)
+    sectorresponsable = db.Column(db.Integer, unique=False)
+    notificar = db.Column(db.String(4096), unique=False)
+    icono = db.Column(db.String(256), unique=False)
+
+class Sector(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    nombre = db.Column(db.String(256), unique=False)
+    descripcion = db.Column(db.Text, unique=False)
+

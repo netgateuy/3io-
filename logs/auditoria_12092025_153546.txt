@@ -1,0 +1,24 @@
+
+
+■▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀■
+■ USER ENUMERATION DETECTOR ■
+■▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄■
+
+[INFO] Iniciando análisis en: https://acuamania.uy/
+↳ ID máximo para Author Archives (10): ↳ Timeout en segundos (5): ↳ Número de hilos (20): [INFO] Probando Author Archives (/?author=1-10)
+[INFO] Probando REST API (/wp-json/wp/v2/users)
+[SUCCESS] Usuario detectado via REST API: acuamania
+[SUCCESS] Usuario detectado via REST API: adminl
+[SUCCESS] Usuario detectado via REST API: adminlc
+[SUCCESS] Usuario detectado via REST API: adminm
+[SUCCESS] Usuario detectado via REST API: fooevents
+[SUCCESS] Usuario detectado via REST API: markenetics
+[SUCCESS] Usuario detectado via REST API: websmarkenetics-com
+[INFO] Probando oEmbed (/wp-json/oembed/1.0/embed)
+[SUCCESS] Usuario detectado via oEmbed: markenetics
+[INFO] Probando XML-RPC (/xmlrpc.php)
+[INFO] XML-RPC no disponible
+
+■ Resumen de enumeración ■
+• REST API: acuamania, adminl, adminlc, adminm, fooevents, markenetics, websmarkenetics-com
+• oEmbed: markenetics

@@ -1,0 +1,8 @@
+
+
+■▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀■
+■ WORDPRESS PLUGIN SCANNER ■
+■▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄■
+
+↳ Wordlist (ruta): 
+[!] Error: [Errno 2] No such file or directory: ''

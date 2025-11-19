@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nueva Oportunidad | CRM Glass</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        /* [BLOQUE COMPLETO DE CSS DE TU CÓDIGO ANTERIOR] */
+        /* Variables Globales */
+        :root {
+            --sidebar-width: 260px;
+            --sidebar-closed-width: 80px;
+            --glass-bg-light: rgba(255, 255, 255, 0.8);
+            --glass-bg-dark: rgba(20, 37, 60, 0.85);
+            --primary-blue: #007bff;
+            --font-dark: #1e3a5f;
+            --font-light: #ffffff;
+            --shadow-soft: rgba(0, 0, 0, 0.15);
+            --transition-speed: 0.3s;
+            --logo-bg: rgba(255, 255, 255, 0.2);
+            --accent-blue: rgba(0, 123, 255, 0.7);
+            --glass-bg-form-input: rgba(255, 255, 255, 0.9);
+            /* NUEVOS ESTILOS PARA ETAPAS */
+            --stage-color-prospecto: #ffc107;
+            --stage-color-propuesta: #007bff;
+            --stage-color-negociacion: #28a745;
+            --stage-color-cerrada: #dc3545;
+        }
+
+        /* RESET BÁSICO Y LAYOUT FLEX */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #74a0e9 0%, #1f4788 100%);
+            display: flex;
+            min-height: 100vh;
+            color: var(--font-dark);
+        }
+
+        /* ... [Resto de estilos generales, sidebar, content, navbar, glass-card] ... */
+        .sidebar { width: var(--sidebar-width); background-color: var(--glass-bg-dark); color: white; height: 100vh; position: fixed; overflow-x: hidden; padding-top: 20px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-right: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 2px 0 15px rgba(0, 0, 0, 0.3); z-index: 100; transition: width var(--transition-speed) ease; display: flex; flex-direction: column; }
+        .sidebar.closed { width: var(--sidebar-closed-width); }
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; padding: 0 20px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); margin-bottom: 15px; width: var(--sidebar-width); padding-right: 15px; transition: width var(--transition-speed) ease; }
+        .sidebar.closed .sidebar-header { width: var(--sidebar-closed-width); justify-content: center; padding: 0 0 20px 0; }
+        .sidebar.closed .logo-container { display: none; }
+        .logo-container { background-color: var(--logo-bg); border-radius: 8px; padding: 5px; display: flex; align-items: center; justify-content: center; }
+        .logo-container img { max-height: 40px; width: auto; }
+        .toggle-btn { background: none; color: white; border: 1px solid rgba(255, 255, 255, 0.4); padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 1.2em; display: flex; align-items: center; justify-content: center; transition: transform var(--transition-speed) ease; }
+        .sidebar.closed .toggle-btn { transform: rotate(180deg); }
+        .menu ul { list-style: none; }
+        .menu li a { display: flex; align-items: center; padding: 12px 15px; text-decoration: none; color: #dbe4f1; border-radius: 8px; margin: 5px 10px; line-height: 1.2; }
+        .menu li a .bi { font-size: 1.3em; margin-right: 15px; width: 25px; text-align: center; line-height: 0; }
+        .sidebar.closed .menu li a span { display: none; }
+        .sidebar.closed .menu li a { justify-content: center; padding: 12px 0; margin: 5px 15px; }
+        .menu li a.active { background-color: var(--primary-blue); box-shadow: 0 2px 8px rgba(0, 123, 255, 0.5); }
+
+        .content { margin-left: var(--sidebar-width); flex-grow: 1; padding: 25px 30px; width: calc(100% - var(--sidebar-width)); color: var(--font-dark); transition: margin-left var(--transition-speed) ease, width var(--transition-speed) ease; }
+        .content.shifted { margin-left: var(--sidebar-closed-width); width: calc(100% - var(--sidebar-closed-width)); }
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; border-radius: 12px; background-color: var(--glass-bg-light); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 4px 30px var(--shadow-soft); margin-bottom: 30px; }
+        .navbar input[type="text"] { padding: 10px 15px; width: 350px; background-color: rgba(255, 255, 255, 1); border: none; border-radius: 20px; font-size: 0.9em; color: var(--font-dark); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); }
+        .user-info span { color: var(--font-dark); font-weight: 600; }
+        h1 { color: var(--font-light); text-shadow: 0 1px 2px var(--shadow-soft); margin-bottom: 25px; font-size: 1.5em; }
+        .glass-card { background-color: var(--glass-bg-light); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 4px 30px var(--shadow-soft); border-radius: 15px; padding: 30px; margin-bottom: 30px; }
+        h2 { color: var(--font-dark); font-size: 1.5em; margin-bottom: 20px; border-bottom: 1px solid rgba(0, 0, 0, 0.1); padding-bottom: 10px; }
+
+        /* Estilos de Formulario (Normal y Grid) */
+        .form-grid { display: grid; gap: 20px; margin-bottom: 20px; }
+        .form-grid-3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+        .form-grid-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+        .form-field label { display: block; margin-bottom: 5px; font-weight: 600; color: #444; font-size: 0.9em; }
+        .form-field input, .form-field select, .form-field textarea { width: 100%; padding: 10px; border: none; border-radius: 8px; background-color: rgba(255, 255, 255, 0.95); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); font-size: 1em; color: var(--font-dark); }
+        .form-field input:focus, .form-field select:focus, .form-field textarea:focus { outline: none; box-shadow: 0 0 0 2px var(--primary-blue); }
+
+        /* Estilos de Tabla y Botones */
+        .products-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
+        .products-table th, .products-table td { border: 1px solid rgba(0, 0, 0, 0.1); padding: 10px; text-align: left; }
+        .products-table th { background-color: rgba(0, 123, 255, 0.1); color: var(--font-dark); font-weight: 700; }
+        .action-button { padding: 10px 20px; border: none; border-radius: 8px; font-size: 1em; font-weight: 600; cursor: pointer; transition: background-color 0.2s, box-shadow 0.2s; margin-top: 15px; }
+        .btn-add { background-color: #28a745; color: white; float: right; box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3); }
+        .btn-add:hover { background-color: #1e7e34; }
+        .btn-save { background-color: var(--primary-blue); color: white; margin-right: 15px; box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3); }
+        .btn-save:hover { background-color: #0056b3; }
+
+        /* BUSCADOR DE CLIENTE ESPECÍFICO - MODO FLEX */
+        .client-search-group { display: flex; gap: 10px; align-items: flex-end; }
+        .client-search-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr 120px; /* ID, Nombre, Botón */
+            gap: 20px;
+            margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+            align-items: flex-end;
+        }
+
+        .btn-search {
+            background-color: #ffc107; color: var(--font-dark); box-shadow: 0 4px 8px rgba(255, 193, 7, 0.4); padding: 10px 15px;
+            width: 100%;
+        }
+        .btn-search:hover { background-color: #e0a800; }
+
+        /* Deshabilitar campos (simulación) */
+        .form-field input:disabled, .form-field select:disabled { background-color: rgba(230, 230, 230, 0.95); color: #888; cursor: not-allowed; }
+
+
+        /* --------------------------------- */
+        /* ESTILOS DE MODAL Y FORMULARIO DINÁMICO UNIFICADOS (CORRECCIÓN FINAL) */
+        /* --------------------------------- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none;
+            justify-content: center; align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active { display: flex; opacity: 1; }
+
+        .modal-content {
+            background-color: var(--glass-bg-light);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 18px; padding: 30px; width: 90%; max-width: 500px;
+            box-shadow: 0 8px 30px var(--shadow-soft);
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+            max-height: 90vh; /* Permite el scroll del modal en general */
+            overflow-y: auto;
+        }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+
+        .modal-content h3 { color: var(--font-dark); border-bottom: 1px solid rgba(0, 0, 0, 0.2); padding-bottom: 10px; margin-bottom: 20px; }
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .btn-cancel { background-color: #6c757d; color: white; }
+        .btn-cancel:hover { background-color: #5a6268; }
+
+        /* ESTILOS ESPECÍFICOS PARA EL MODAL DE FILTRO DE CLIENTES */
+        /* 🔑 REGLA CLAVE PARA EL SCROLL DENTRO DEL POPUP 🔑 */
+        #listaClientesFilter {
+            list-style: none;
+            padding: 0;
+            margin-top: 20px;
+            max-height: 250px; /* Altura máxima antes del scroll */
+            overflow-y: auto;  /* Habilita el scroll vertical */
+            padding-right: 15px; /* Evita que el scrollbar quede pegado al borde */
+        }
+
+        #listaClientesFilter li {
+            list-style: none;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            background-color: rgba(0, 123, 255, 0.1);
+            border: 1px solid rgba(0, 123, 255, 0.3);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #listaClientesFilter li:hover {
+            background-color: rgba(0, 123, 255, 0.2);
+        }
+        #listaClientesFilter strong {
+            display: block;
+            font-size: 1.1em;
+            color: var(--primary-blue);
+        }
+        #listaClientesFilter small {
+            color: #555;
+            display: block;
+            margin-top: 3px;
+        }
+
+        /* ESTILOS UNIFICADOS PARA LOS CAMPOS DEL MODAL (fijos y dinámicos) */
+        .inner-glass-card {
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 15px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .inner-glass-card h4 { color: var(--font-dark); margin-bottom: 15px; }
+
+        .form-field-embed { margin-bottom: 15px; }
+
+        /* Las etiquetas e inputs del modal (tanto fijos como dinámicos) ahora usan estos estilos */
+        .form-field-embed label {
+            display: block; font-weight: 600; color: var(--font-dark); font-size: 0.95em; margin-bottom: 5px;
+        }
+        .form-field-embed input,
+        .form-field-embed select,
+        .form-field-embed textarea {
+            width: 100%; padding: 10px; border: none; border-radius: 10px;
+            background-color: var(--glass-bg-form-input);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
+            font-size: 1em; color: var(--font-dark); transition: box-shadow 0.2s;
+        }
+        .form-field-embed input:focus, .form-field-embed select:focus, .form-field-embed textarea:focus {
+            outline: none; box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.4);
+        }
+
+/* --- NUEVO ESTILO PARA ALINEACIÓN DEL CHECKBOX A LA IZQUIERDA --- */
+.checkbox-align-left {
+    display: flex;
+    justify-content: flex-start; /* Alinea el contenido al inicio (izquierda) */
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+/* Asegúrate de que .switch-label tenga un margin-right: auto; si quieres que el switch se separe mucho.
+   Por ahora, solo usamos gap: 10px para que queden juntos. */
+.switch-label {
+    /* Si estás usando la propiedad margin: 0; en el HTML, quítala. */
+    font-weight: 600;
+    color: var(--font-dark);
+    font-size: 0.9em;
+}
+    </style>
+</head>
+<body>
+     <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-container">
+                <img src="/static/img/3ioplus.png" alt="CRM Logo" title="Tu Logo PNG">
+            </div>
+            <button id="toggleBtn" class="toggle-btn" title="Plegar/Desplegar Menú">&#9776;</button>
+        </div>
+        <nav class="menu">
+            <ul>
+                <li><a href="#"><i class="bi bi-speedometer2"></i> <span>Dashboard</span></a></li>
+                <li><a href="#"><i class="bi bi-people"></i> <span>Clientes</span></a></li>
+                <li class="active"><a href="#" class="active"><i class="bi bi-file-earmark-text"></i> <span>Contratos</span></a></li>
+                <li><a href="/application/oportunidades"><i class="bi bi-bag-check"></i> <span>Oportunidades</span></a></li>
+                <li><a href="#"><i class="bi bi-calendar-check"></i> <span>Tareas y Agenda</span></a></li>
+                <li><a href="#"><i class="bi bi-graph-up-arrow"></i> <span>Reportes</span></a></li>
+                <hr style="margin: 15px 20px; border-color: rgba(255, 255, 255, 0.2);">
+                <li><a href="#"><i class="bi bi-gear"></i> <span>Configuración</span></a></li>
+                <li><a href="#"><i class="bi bi-box-arrow-right"></i> <span>Cerrar Sesión</span></a></li>
+            </ul>
+        </nav>
+    </aside>
+    <main id="content" class="content">
+        <h1><i class="bi bi-rocket-takeoff"></i> Nueva Oportunidad</h1>
+
+        <form id="oportunidadForm">
+           <div class="glass-card">
+                <h2>1. Datos del Cliente</h2>
+                 <div class="client-search-container">
+                    <div class="form-field">
+                        <label for="idClienteSeleccionado">ID Cliente Seleccionado</label>
+                        <input type="number" id="idCliente" name="idCliente" value="0" placeholder="ID de Cliente Seleccionado" disabled>
+                    </div>
+                    <div class="form-field">
+                        <label for="nombreClienteBusqueda">Buscar por Nombre/Razón Social</label>
+                        <input type="text" id="nombreClienteBusqueda" placeholder="Búscar: ID, Nombre/Apellido, Razón social, Documento">
+                    </div>
+                    <button type="button" class="action-button btn-search" onclick="buscarClientes()">
+                        <i class="bi bi-search"></i> Buscar
+                    </button>
+                </div>
+                <div class="form-grid form-grid-3">
+                    <div class="form-field"><label for="idPais">País (*)</label>
+                    <select id="idPais" name="idPais">
+                         {% for p in paises %}
+                        <option value="{{p.idPais}}" {% if p.idPais == "UY" %}selected{% endif %}>
+                            {{p.nombre}}
+                        </option>
+                        {% endfor %}
+                    </select></div>
+                    <div class="form-field"><label for="cliNombre">Nombre (*)</label><input type="text" id="cliNombre" name="cliNombre" placeholder="Nombre" required></div>
+                    <div class="form-field"><label for="cliApellido">Apellido</label><input type="text" id="cliApellido" name="cliApellido" placeholder="Apellido"></div>
+                    <div class="form-field"><label for="cliRazon">Razón Social</label><input type="text" id="cliRazon" name="cliRazon" placeholder="Razón Social"></div>
+                    <div class="form-field"><label for="cliFantasia">Nombre de Fantasía</label><input type="text" id="cliFantasia" name="cliFantasia" placeholder="Nombre de Fantasía"></div>
+                      <div class="form-field"><label for="idPais">Tipo Documento (*)</label>
+                    <select id="idTipoID" name="idTipoID">
+                        <option value="">Selecciona un tipo documento</option>
+                        {% for ti in tipo_id %}
+                        <option value="{{ti.idtipoid}}">
+                            {{ti.idtipoid}}
+                        </option>
+                        {% endfor %}
+                    </select></div>
+                    <div class="form-field"><label for="nroID">Nro. Identificación (*)</label><input type="text" id="nroID" name="nroID" required></div>
+                    <div class="form-field"><label for="Telefono">Telefono</label><input type="text" id="Telefono" name="Telefono" required></div>
+                    <div class="form-field"><label for="Celular">Celular</label><input type="text" id="Celular" name="Celular" required></div>
+                    <div class="form-field"><label for="Celular">Contacto</label><input type="text" id="Contacto" name="Contacto" required></div>
+
+                </div>
+                <h2>2. Domicilio</h2>
+                <div class="form-grid form-grid-3">
+                    <div class="form-field"><label for="idSubPais">Departamento/Estado</label><select id="idSubPais" name="idSubPais">
+                        <option value="">Selecciona un sub pais</option>
+                    </select></div>
+                    <div class="form-field"><label for="idCiudad">Ciudad (*)</label><select id="idCiudad" name="idCiudad">
+                        <option value="">Selecciona una ciudad</option>
+                    </select></div>
+                    <div class="form-field"><label for="Calle">Calle (*)</label><input type="text" id="Calle" name="Calle" placeholder="Calle" required></div>
+                    <div class="form-field"><label for="nroPuerta">Nro. Puerta / Manzana</label><input type="text" id="nroPuerta" name="nroPuerta" placeholder="Nro. Puerta"></div>
+                    <div class="form-field"><label for="Apto">Apto / Solar</label><input type="text" id="Apto" name="Apto" placeholder="Apto / Oficina"></div>
+                   <div class="form-field"><label for="eMailAviso">Email de Aviso (*)</label><input type="email" id="eMailAviso" name="eMailAviso" placeholder="Email para notificaciones" required></div>
+                </div>
+            </div>
+            <div class="glass-card">
+                <h2>3. Forma Pago</h2>
+                 <div class="form-grid form-grid-3">
+                    <div class="form-field"><label for="idPais">Tipo Pago (*)</label>
+                    <select id="idTipoPago" name="idTipoPago">
+                        <option value="">Selecciona un tipo pago</option>
+                        {% for tp in tipo_pago %}
+                        <option value="{{tp.idTipoPago}}">
+                            {{tp.descripcion}}
+                        </option>
+                        {% endfor %}
+                    </select></div>
+
+                    <div class="form-field"><label for="cliNombre">Forma Pago (*)</label>
+                    <select id="idFormaPago" name="idFormaPago">
+
+                    </select>
+                    </div>
+
+                 </div>
+            </div>
+            <div class="glass-card">
+                <h2>4. Datos de la Oportunidad</h2>
+                <div class="form-grid form-grid-3">
+                    <div class="form-field">
+                        <label for="etapaActual">Tipo oportunidad (*)</label>
+                        <select id="idtipo" name="idtipo" required>
+                                <option value="">Seleccionar</option>
+                               {% for to in tipooportunidad %}
+                                <option value="{{to.id}}">
+                                    {{to.nombre}}
+                                </option>
+                                {% endfor %}
+                        </select>
+                    </div> <div class="form-field"><label for="idComercial">Responsable (*)</label>
+                        <select id="responsable" name="responsable">
+                        {% for u in usuarios %}
+                        <option value="{{u.id}}">
+                            {{u.first_name}}
+                        </option>
+                        {% endfor %}
+                        </select></div>
+                    <div class="form-field"><label for="fechaCreacion">Fecha de Creación (*)</label><input type="date" id="fechaAlta" name="fechaAlta" required disabled></div>
+                     <div class="form-field"><label for="fechaInicio">Fecha de Inicio (*)</label><input type="date" id="fechaInicio" name="fechaInicio" required></div>
+
+                </div>
+
+                <div class="form-grid form-grid-2">
+                    <div class="form-field"><label for="notas">Notas Generales</label><textarea id="notas" name="notas" rows="3" placeholder="Detalles de la oportunidad y requisitos..."></textarea></div>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <button type="submit" class="action-button btn-save"><i class="bi bi-save"></i> Guardar Oportunidad</button>
+            </div>
+        </form>
+    </main>
+
+    <div id="modalItem" class="modal-overlay">
+        <div class="modal-content">
+            <h3><i class="bi bi-file-earmark-text"></i> Detalle de Item/Contrato</h3>
+            <div class="form-field-embed">
+                <label for="itemNombre">Descripción del Item/Contrato</label>
+                <input type="text" id="itemNombre" placeholder="Ej: Contrato Mantenimiento Anual">
+            </div>
+            <div class="form-field-embed">
+                <label for="itemMonto">Valor del Item</label>
+                <input type="number" id="itemMonto" placeholder="Monto sin IVA">
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="action-button btn-cancel" onclick="cerrarModalContrato()">Cancelar</button>
+                <button type="button" class="action-button btn-save" onclick="agregarItemALista()">Aceptar y Añadir</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalClientes" class="modal-overlay">
+        <div class="modal-content">
+            <h3><i class="bi bi-people"></i> Seleccionar Cliente Filtrado</h3>
+            <p>Se han encontrado clientes que coinciden con la búsqueda. Seleccione uno de la lista:</p>
+
+            <ul id="listaClientesFilter">
+                </ul>
+
+            <div class="modal-buttons">
+                <button type="button" class="action-button btn-cancel" onclick="cerrarModalClientes()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Variables Globales ---
+    let clientesEncontrados = []; // Aquí se guardarán los resultados del fetch
+    let clienteSeleccionado = null;
+    // URL base de tu API de filtrado (Asegúrate de que esta URL sea correcta en tu entorno)
+    const API_CLIENTES_URL = '/api/cliente/filter';
+    let itemIdCounter = 0;
+
+
+    /**
+     * @function buscarClientes
+     * Realiza una consulta FETCH al servidor para obtener clientes que coincidan
+     * con el término de búsqueda y los muestra en el modal.
+     */
+    async function buscarClientes() {
+        const query = document.getElementById('nombreClienteBusqueda').value.toLowerCase().trim();
+        const listaClientesUl = document.getElementById('listaClientesFilter');
+        listaClientesUl.innerHTML = ''; // Limpia la lista anterior
+        clientesEncontrados = []; // Limpia la variable global de resultados
+
+        // 1. Validar la consulta
+        if (!query) {
+            alert('Ingrese un término de búsqueda (ej: "miranda")');
+            return;
+        }
+
+        // 2. Construir la URL completa
+        const url = `${API_CLIENTES_URL}?q=${encodeURIComponent(query)}`;
+
+        // --- INICIO DE LÓGICA FETCH REAL ---
+        try {
+            // 3. Realizar la solicitud FETCH
+            const response = await fetch(url);
+
+            // 4. Verificar el código HTTP (Ej: 200 OK)
+            if (!response.ok) {
+                // Si no es 200, lanzar un error (maneja 404, 500, etc.)
+                throw new Error(`Error HTTP: ${response.status} - No se pudo conectar con el servidor.`);
+            }
+
+            // 5. Convertir la respuesta a JSON
+            const resultados = await response.json();
+
+            // 6. Cargar el array en la variable global
+            clientesEncontrados = resultados;
+
+            // 7. Verificar si se encontraron resultados
+            if (clientesEncontrados.length === 0) {
+                alert(`No se encontraron clientes que coincidan con "${query}".`);
+                return;
+            }
+
+            // 8. Inyectar resultados en el modal para visualización
+            clientesEncontrados.forEach(cliente => {
+                const li = document.createElement('li');
+                li.setAttribute('data-cliente-id', cliente.idCliente);
+                li.innerHTML = `
+                    <strong>${cliente.clirazon || ''}${cliente.clinombre || ''} ${cliente.cliapellido || ''}</strong>
+                    <small>ID: ${cliente.idcliente} | Doc: ${cliente.nroid} | Contacto: ${cliente.contacto}</small>
+                `;
+                li.onclick = () => seleccionarCliente(cliente);
+                listaClientesUl.appendChild(li);
+            });
+
+            abrirModalClientes();
+
+        } catch (error) {
+            // 9. Manejar errores de red o errores lanzados
+            console.error("Error al buscar clientes:", error);
+            alert(`Ocurrió un error al intentar la búsqueda. El backend (${API_CLIENTES_URL}) no está respondiendo. Revisa la consola para más detalles.`);
+        }
+        // --- FIN DE LÓGICA FETCH REAL ---
+    }
+
+
+        /**
+         * @function seleccionarCliente
+         * Asigna el cliente seleccionado a los campos del formulario principal.
+         */
+        function seleccionarCliente(cliente) {
+            clienteSeleccionado = cliente;
+            document.getElementById('idPais').value = cliente.idpais;
+            document.getElementById('idCliente').value = cliente.idcliente;
+            document.getElementById('cliNombre').value = cliente.clinombre;
+            document.getElementById('cliApellido').value = cliente.cliapellido;
+            document.getElementById('cliRazon').value = cliente.clirazon;
+            document.getElementById('cliFantasia').value = cliente.clifantasia;
+            document.getElementById('idTipoID').value = cliente.idtipoid;
+            document.getElementById('nroID').value = cliente.nroid;
+            document.getElementById('eMailAviso').value = cliente.emailaviso;
+            document.getElementById('Calle').value = cliente.calle;
+            document.getElementById('nroPuerta').value = cliente.nropuerta;
+            document.getElementById('Apto').value = cliente.apto;
+            document.getElementById('idTipoPago').value = cliente.idtipopago;
+            document.getElementById('Telefono').value = cliente.telefono;
+            document.getElementById('Celular').value = cliente.celular;
+            document.getElementById('Contacto').value = cliente.contacto;
+            loadsubpaises(cliente.idsubpais,cliente.idciudad);
+            loadformapago(cliente.idtipopago,cliente.idformapago);
+            cerrarModalClientes();
+        }
+
+        // Funciones para manejar el nuevo Modal de Clientes
+        function abrirModalClientes() {
+            document.getElementById('modalClientes').classList.add('active');
+        }
+
+        function cerrarModalClientes() {
+            document.getElementById('modalClientes').classList.remove('active');
+        }
+
+        function abrirModalContrato() {
+            document.getElementById('modalItem').classList.add('active');
+        }
+
+        function cerrarModalContrato() {
+            document.getElementById('modalItem').classList.remove('active');
+        }
+
+        function  loadformapago(idTipoPago,idFormaPago){
+          document.getElementById('idFormaPago').innerHTML = "";
+
+          if (!idTipoPago) return; // si no seleccionó nada, no hace nada
+
+          fetch(`/api/forma_pago/${idTipoPago}`)
+            .then(response => response.json())
+            .then(data => {
+              const subSelect = document.getElementById('idFormaPago');
+              subSelect.innerHTML = '<option value="">Selecciona una forma pago</option>';
+
+              data.forEach(sub => {
+                const option = document.createElement('option');
+                option.value = sub.idFormaPago;
+                option.textContent = sub.descripcion;
+                subSelect.appendChild(option);
+              });
+              document.getElementById('idFormaPago').value = idFormaPago;
+            })
+            .catch(err => console.error('Error cargando subtipos:', err));
+        }
+
+        function agregarItemALista() {
+            const nombre = document.getElementById('itemNombre').value;
+            const monto = document.getElementById('itemMonto').value;
+
+            if (!nombre || !monto) {
+                alert('Debe completar la descripción y el monto.');
+                return;
+            }
+
+            const lista = document.getElementById('items-lista');
+
+            // 1. Eliminar el placeholder "No hay ítems"
+            const placeholder = lista.querySelector('td[colspan="5"]');
+            if (placeholder) {
+                placeholder.closest('tr').remove();
+            }
+
+            itemIdCounter++;
+            const nuevaFila = document.createElement('tr');
+            nuevaFila.innerHTML = `
+                <td>${nombre}</td>
+                <td>$ ${parseFloat(monto).toFixed(2)}</td>
+                <td>50%</td>
+                <td>Propuesta</td>
+                <td><button type="button" onclick="this.closest('tr').remove();" style="background: none; border: none; cursor: pointer; color: #dc3545;" title="Eliminar"><i class="bi bi-trash"></i></button></td>
+            `;
+
+            lista.appendChild(nuevaFila);
+            cerrarModalContrato();
+        }
+
+        // JS para el sidebar
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleBtn = document.getElementById('toggleBtn');
+            const sidebar = document.getElementById('sidebar');
+            const content = document.getElementById('content');
+
+            toggleBtn.addEventListener('click', function() {
+                sidebar.classList.toggle('closed');
+                content.classList.toggle('shifted');
+            });
+
+            // Inicializar Fecha de Creación con fecha actual
+            document.getElementById('fechaAlta').value = new Date().toISOString().slice(0, 10);
+        });
+
+        document.getElementById('oportunidadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // Verifica si se ha seleccionado un cliente antes de enviar
+            if (!document.getElementById('idCliente').value) {
+                 alert('Debe seleccionar un cliente antes de guardar la oportunidad.');
+                 return;
+            }
+            const form = document.getElementById('oportunidadForm');
+            const formData = new FormData(form);
+            const jsonData = {};
+            formData.forEach((value, key) => {
+              // Si hay varios campos con el mismo name (por ejemplo, checkboxes múltiples)
+              if (jsonData[key]) {
+                if (!Array.isArray(jsonData[key])) {
+                  jsonData[key] = [jsonData[key]];
+                }
+                jsonData[key].push(value);
+              } else {
+                jsonData[key] = value;
+              }
+            });
+            jsonData["idCliente"] = Number(document.getElementById('idCliente').value);
+            jsonData["fechaAlta"] = document.getElementById('fechaAlta').value;
+            jsonData["fechaInicio"] = document.getElementById('fechaInicio').value;
+
+            console.log(jsonData);
+
+            fetch('/api/oportunidad', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(jsonData)
+            })
+            .then(response => {
+              if (!response.ok) throw new Error('Error en la respuesta del servidor');
+              return response.json(); // o response.text() si el servidor no devuelve JSON
+            })
+            .then(data => {
+                if(!data["error"]){
+                    id = data["id"];
+                    window.location.href = `/application/oportunidad/${id}`;
+                }else{
+                    alert("Error al intentar dar de alta la oportunidad.");
+                }
+            })
+            .catch(error => {
+              console.error('Error al enviar:', error);
+            });
+
+        });
+
+        function loadciudades(idciudad){
+            document.getElementById('idCiudad').innerHTML = "";
+            let idPais  = document.getElementById('idPais').value;
+            let idSubPais  = document.getElementById('idSubPais').value;
+            fetch(`/api/ciudades/${idPais}/${idSubPais}`)
+            .then(response => response.json())
+            .then(data => {
+              const subSelect = document.getElementById('idCiudad');
+              subSelect.innerHTML = '<option value="">Seleccionar</option>';
+              data.forEach(sub => {
+                const option = document.createElement('option');
+                option.value = sub.idCiudad;
+                option.textContent = sub.nombre;
+                subSelect.appendChild(option);
+              });
+              if (idciudad) document.getElementById('idCiudad').value = idciudad;
+            })
+            .catch(err => console.error('Error cargando ciudades:', err));
+        }
+
+        function loadsubpaises(idsubpais,idciudad){
+            document.getElementById('idSubPais').innerHTML = "";
+            let idPais  = document.getElementById('idPais').value;
+            fetch(`/api/subpaises/${idPais}`)
+            .then(response => response.json())
+            .then(data => {
+              const subSelect = document.getElementById('idSubPais');
+              subSelect.innerHTML = '<option value="">Seleccionar</option>';
+              data.forEach(sub => {
+                const option = document.createElement('option');
+                option.value = sub.idSubPais;
+                option.textContent = sub.nombre;
+                subSelect.appendChild(option);
+              });
+              if (idsubpais) document.getElementById('idSubPais').value = idsubpais;
+              loadciudades(idciudad);
+            })
+            .catch(err => console.error('Error cargando subtipos:', err));
+        }
+
+        document.getElementById('idTipoPago').addEventListener('change', function() {
+          const idTipoPago = this.value;
+
+          document.getElementById('idFormaPago').innerHTML = "";
+
+          if (!idTipoPago) return; // si no seleccionó nada, no hace nada
+
+          fetch(`/api/forma_pago/${idTipoPago}`)
+            .then(response => response.json())
+            .then(data => {
+              const subSelect = document.getElementById('idFormaPago');
+              subSelect.innerHTML = '<option value="">Selecciona una forma pago</option>';
+
+              data.forEach(sub => {
+                const option = document.createElement('option');
+                option.value = sub.idFormaPago;
+                option.textContent = sub.descripcion;
+                subSelect.appendChild(option);
+              });
+            })
+            .catch(err => console.error('Error cargando subtipos:', err));
+        });
+
+        document.getElementById('idSubPais').addEventListener('change', function() {
+          const idSubPais = this.value;
+          idPais = document.getElementById('idPais').value;
+
+          document.getElementById('idCiudad').innerHTML = "";
+
+          if (!idCiudad) return; // si no seleccionó nada, no hace nada
+
+          fetch(`/api/ciudades/${idPais}/${idSubPais}`)
+            .then(response => response.json())
+            .then(data => {
+              const subSelect = document.getElementById('idCiudad');
+              subSelect.innerHTML = '<option value="">Seleccionar</option>';
+
+              data.forEach(sub => {
+                const option = document.createElement('option');
+                option.value = sub.idCiudad;
+                option.textContent = sub.nombre;
+                subSelect.appendChild(option);
+              });
+            })
+            .catch(err => console.error('Error cargando ciudades:', err));
+        });
+    </script>
+</body>
+</html>

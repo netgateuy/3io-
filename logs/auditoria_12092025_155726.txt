@@ -1,0 +1,8 @@
+
+
+■▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀■
+■ XML-RPC SECURITY AUDITOR ■
+■▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄■
+
+[INFO] Analizando: https://acuamania.com.uy/xmlrpc.php
+ [DETECCIÓN] XML-RPC no detectado

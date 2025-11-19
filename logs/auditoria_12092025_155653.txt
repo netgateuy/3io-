@@ -1,0 +1,10 @@
+
+
+■▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀■
+■ CORS SECURITY AUDITOR ■
+■▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄■
+
+↳ URL objetivo: https://acuamania.com.uy
+↳ Verificar SSL [n]: ↳ Timeout (10s): ↳ ¿Headers personalizados? [n]: [INFO] Verificando URL...
+[WARNING] La URL no tiene configuraciones CORS visibles
+↳ ¿Continuar con el escaneo? [s/N]: 

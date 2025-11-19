@@ -1,0 +1,218 @@
+► Ejecutando auditoría completa...
+
+════════════ DETECTAR ENUMERACIÓN DE USUARIOS ════════════
+
+
+■▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀■
+■ USER ENUMERATION DETECTOR ■
+■▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄■
+
+[INFO] Iniciando análisis en: https://acuamania.uy/
+↳ ID máximo para Author Archives (10): ↳ Timeout en segundos (5): ↳ Número de hilos (20): [INFO] Probando Author Archives (/?author=1-10)
+[INFO] Probando REST API (/wp-json/wp/v2/users)
+[SUCCESS] Usuario detectado via REST API: acuamania
+[SUCCESS] Usuario detectado via REST API: adminl
+[SUCCESS] Usuario detectado via REST API: adminlc
+[SUCCESS] Usuario detectado via REST API: adminm
+[SUCCESS] Usuario detectado via REST API: fooevents
+[SUCCESS] Usuario detectado via REST API: markenetics
+[SUCCESS] Usuario detectado via REST API: websmarkenetics-com
+[INFO] Probando oEmbed (/wp-json/oembed/1.0/embed)
+[SUCCESS] Usuario detectado via oEmbed: markenetics
+[INFO] Probando XML-RPC (/xmlrpc.php)
+[INFO] XML-RPC no disponible
+
+■ Resumen de enumeración ■
+• REST API: acuamania, adminl, adminlc, adminm, fooevents, markenetics, websmarkenetics-com
+• oEmbed: markenetics
+
+════════════ ANALIZAR XML-RPC ════════════
+
+
+■▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀■
+■ XML-RPC SECURITY AUDITOR ■
+■▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄■
+
+[INFO] Analizando: https://acuamania.uy/xmlrpc.php
+ [DETECCIÓN] XML-RPC no detectado
+
+════════════ ESCÁNER DE ARCHIVOS SENSIBLES ════════════
+
+
+■▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀■
+■ SENSITIVE FILES SCANNER ■
+■▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄■
+
+[INFO] Escaneando 56 archivos sensibles...
+[PROTEGIDO] wp-config.php
+[PROTEGIDO] .htaccess
+[PROTEGIDO] debug.log
+[PROTEGIDO] wp-config.php.bak
+[PROTEGIDO] web.config
+[PROTEGIDO] .user.ini
+[PROTEGIDO] php.ini
+[PROTEGIDO] wp-config.php.save
+[PROTEGIDO] wp-config.php~
+[PROTEGIDO] .env
+[PROTEGIDO] wp-content/debug.log
+[PROTEGIDO] error_log
+[PROTEGIDO] wp-error.log
+[PROTEGIDO] wp-admin/install.php
+[PROTEGIDO] wp-admin/upgrade.php
+[PROTEGIDO] wp-admin/setup-config.php
+[PROTEGIDO] phpinfo.php
+[PROTEGIDO] info.php
+[PROTEGIDO] license.txt
+[PROTEGIDO] wp-settings.php
+[PROTEGIDO] wp-login.php
+[PROTEGIDO] wp-content/uploads/
+[PROTEGIDO] wp-includes/pluggable.php
+[PROTEGIDO] wp-includes/functions.php
+[PROTEGIDO] backup.zip
+[PROTEGIDO] backup.tar.gz
+[PROTEGIDO] db_backup.sql
+[PROTEGIDO] backup.sql
+[PROTEGIDO] wp-content/themes/
+[PROTEGIDO] wp-content/plugins/
+[PROTEGIDO] readme.html
+[PROTEGIDO] wp-config.old
+[PROTEGIDO] wp-config.txt
+[PROTEGIDO] readme.txt
+[PROTEGIDO] wp-config-sample.php
+[PROTEGIDO] wp-backup.php
+[PROTEGIDO] .git/config
+[PROTEGIDO] admin.php
+[PROTEGIDO] backup-wp-config.php
+[PROTEGIDO] .svn/entries
+[PROTEGIDO] .DS_Store
+[PROTEGIDO] upload.php
+[PROTEGIDO] Thumbs.db
+[PROTEGIDO] wp-cron.php
+[PROTEGIDO] wp-comments-post.php
+[ERROR] wp-trackback.php
+[POSIBLE FALSO POSITIVO] wp-load.php
+[PROTEGIDO] settings.php
+[PROTEGIDO] ajax.php
+[PROTEGIDO] access.log
+[PROTEGIDO] error_log.1
+[PROTEGIDO] sample-config.php
+[PROTEGIDO] debug.log.1
+[PROTEGIDO] connector.php
+[PROTEGIDO] access_log
+[POSIBLE FALSO POSITIVO] wp-links-opml.php
+
+════════════ DETECTAR VERSIÓN DE WORDPRESS ════════════
+
+
+■▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀■
+■ WORDPRESS VERSION DETECTOR ■
+■▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄■
+
+[NO DETECTADA] Versión no encontrada
+
+════════════ AUDITAR REST API ════════════
+
+
+■▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀■
+■ REST API SECURITY AUDITOR ■
+■▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄■
+
+ℹ INFO      Scanning target: https://acuamania.uy/
+
+┌─────────────────────────────┐
+│ CRITICAL SEVERITY ENDPOINTS │
+└─────────────────────────────┘
+    • Exposed user list:
+☠ CRITICAL  /wp-json/wp/v2/users (7 items)
+    • Authenticated user information:
+✓ SAFE      /wp-json/wp/v2/users/me (HTTP 401)
+
+┌────────────────────────────┐
+│  HIGH SEVERITY ENDPOINTS   │
+└────────────────────────────┘
+    • Public comments:
+⚠ WARNING   /wp-json/wp/v2/comments (empty response)
+    • Public media files (images, PDFs, etc.):
+✗ DANGER    /wp-json/wp/v2/media (10 items)
+    • Content search functionality:
+⚠ WARNING   /wp-json/wp/v2/search?search=hello (empty response)
+
+┌────────────────────────────┐
+│ MEDIUM SEVERITY ENDPOINTS  │
+└────────────────────────────┘
+    • Public posts listing:
+✗ DANGER    /wp-json/wp/v2/posts?per_page=1 (1 item)
+    • Public pages listing:
+✗ DANGER    /wp-json/wp/v2/pages (10 items)
+    • Categories listing:
+✗ DANGER    /wp-json/wp/v2/categories (2 items)
+    • Tags listing:
+⚠ WARNING   /wp-json/wp/v2/tags (empty response)
+
+┌────────────────────────────┐
+│   LOW SEVERITY ENDPOINTS   │
+└────────────────────────────┘
+    • API root endpoint:
+⚠ WARNING   /wp-json/ (16 keys)
+    • WP namespace root:
+⚠ WARNING   /wp-json/wp/v2 (3 keys)
+    • Content types information:
+⚠ WARNING   /wp-json/wp/v2/types (19 keys)
+    • Content statuses:
+⚠ WARNING   /wp-json/wp/v2/statuses (2 keys)
+    • Registered taxonomies:
+⚠ WARNING   /wp-json/wp/v2/taxonomies (10 keys)
+    • Available block types:
+✓ SAFE      /wp-json/wp/v2/block-types (HTTP 401)
+    • oEmbed root endpoint:
+⚠ WARNING   /wp-json/oembed/1.0 (3 keys)
+    • oEmbed metadata:
+✓ SAFE      /wp-json/oembed/1.0/embed (HTTP 400)
+
+┌──────────────────────────────────────────────────────────────────────┐
+│                             SCAN SUMMARY                             │
+├──────────────────────────────────────────────────────────────────────┤
+│ ☠ Critical: 1 endpoints with highly sensitive data exposed           │
+│ ✗ Dangerous: 4 endpoints with significant data exposure              │
+│ ⚠ Warning: 9 endpoints with limited data or access issues            │
+│ ✓ Safe: 3 endpoints with no concerning data exposure                 │
+└──────────────────────────────────────────────────────────────────────┘
+
+════════════ VERIFICAR CERTIFICADO SSL ════════════
+
+
+■▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀■
+■ SSL/TLS CERTIFICATE AUDITOR ■
+■▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄■
+
+[INFO] Objetivo escaneado acuamania.uy
+[INFO] Protocolo TLSv1.3
+[INFO] Cifrado activo TLS_AES_256_GCM_SHA384
+[INFO] Emisor certificado R13
+[SAFE] Expiración 25/11/2025
+[SAFE] Estado certificado VÁLIDO
+
+════════════ VERIFICAR SECURITY.TXT ════════════
+
+
+■▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀■
+■  SECURITY.TXT INSPECTOR ■
+■▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄■
+
+ 🎯 [TARGET] Objetivo escaneado:
+---------------------------------------------
+https://acuamania.uy/.well-known/security.txt
+---------------------------------------------
+❌ ⮞⮞⮞ NO DETECTADO Archivo no encontrado en la ruta estándar
+
+════════════ VERIFICAR CORS ════════════
+
+
+■▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀■
+■ CORS SECURITY AUDITOR ■
+■▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄■
+
+↳ URL objetivo: https://acuamania.uy
+↳ Verificar SSL [n]: ↳ Timeout (10s): ↳ ¿Headers personalizados? [n]: [INFO] Verificando URL...
+[WARNING] La URL no tiene configuraciones CORS visibles
+↳ ¿Continuar con el escaneo? [s/N]: 

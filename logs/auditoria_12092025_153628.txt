@@ -1,0 +1,11 @@
+
+
+■▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀■
+■ WORDPRESS BRUTE FORCE ■
+■▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄■
+
+↳ URL de login completo (ej: http://sitio.com/wp-login.php): ↳ Usuario (archivo/texto): ↳ Contraseñas (archivo/texto): ↳ Hilos [20]: ↳ Timeout (s) [5]: 
+[i] Combinaciones totales: 1
+[i] Tiempo de carga: 0.00s
+
+❌ No se encontraron credenciales válidas

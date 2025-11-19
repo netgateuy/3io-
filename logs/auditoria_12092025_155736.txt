@@ -1,0 +1,66 @@
+
+
+■▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀■
+■ REST API SECURITY AUDITOR ■
+■▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄■
+
+ℹ INFO      Scanning target: https://acuamania.com.uy/
+
+┌─────────────────────────────┐
+│ CRITICAL SEVERITY ENDPOINTS │
+└─────────────────────────────┘
+    • Exposed user list:
+☠ CRITICAL  /wp-json/wp/v2/users (7 items)
+    • Authenticated user information:
+✓ SAFE      /wp-json/wp/v2/users/me (HTTP 401)
+
+┌────────────────────────────┐
+│  HIGH SEVERITY ENDPOINTS   │
+└────────────────────────────┘
+    • Public comments:
+⚠ WARNING   /wp-json/wp/v2/comments (empty response)
+    • Public media files (images, PDFs, etc.):
+✗ DANGER    /wp-json/wp/v2/media (10 items)
+    • Content search functionality:
+⚠ WARNING   /wp-json/wp/v2/search?search=hello (empty response)
+
+┌────────────────────────────┐
+│ MEDIUM SEVERITY ENDPOINTS  │
+└────────────────────────────┘
+    • Public posts listing:
+✗ DANGER    /wp-json/wp/v2/posts?per_page=1 (1 item)
+    • Public pages listing:
+✗ DANGER    /wp-json/wp/v2/pages (10 items)
+    • Categories listing:
+✗ DANGER    /wp-json/wp/v2/categories (2 items)
+    • Tags listing:
+⚠ WARNING   /wp-json/wp/v2/tags (empty response)
+
+┌────────────────────────────┐
+│   LOW SEVERITY ENDPOINTS   │
+└────────────────────────────┘
+    • API root endpoint:
+⚠ WARNING   /wp-json/ (16 keys)
+    • WP namespace root:
+⚠ WARNING   /wp-json/wp/v2 (3 keys)
+    • Content types information:
+⚠ WARNING   /wp-json/wp/v2/types (19 keys)
+    • Content statuses:
+⚠ WARNING   /wp-json/wp/v2/statuses (2 keys)
+    • Registered taxonomies:
+⚠ WARNING   /wp-json/wp/v2/taxonomies (10 keys)
+    • Available block types:
+✓ SAFE      /wp-json/wp/v2/block-types (HTTP 401)
+    • oEmbed root endpoint:
+⚠ WARNING   /wp-json/oembed/1.0 (3 keys)
+    • oEmbed metadata:
+✓ SAFE      /wp-json/oembed/1.0/embed (HTTP 400)
+
+┌──────────────────────────────────────────────────────────────────────┐
+│                             SCAN SUMMARY                             │
+├──────────────────────────────────────────────────────────────────────┤
+│ ☠ Critical: 1 endpoints with highly sensitive data exposed           │
+│ ✗ Dangerous: 4 endpoints with significant data exposure              │
+│ ⚠ Warning: 9 endpoints with limited data or access issues            │
+│ ✓ Safe: 3 endpoints with no concerning data exposure                 │
+└──────────────────────────────────────────────────────────────────────┘

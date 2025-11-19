@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alta de Contrato | CRM Glass</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        :root {
+            --sidebar-width: 260px;
+            --sidebar-closed-width: 80px;
+            --glass-bg-light: rgba(255, 255, 255, 0.8);
+            --glass-bg-dark: rgba(20, 37, 60, 0.85);
+            --primary-blue: #007bff;
+            --font-dark: #1e3a5f;
+            --font-light: #ffffff;
+            --shadow-soft: rgba(0, 0, 0, 0.15);
+            --transition-speed: 0.3s;
+            --logo-bg: rgba(255, 255, 255, 0.2);
+            --accent-blue: rgba(0, 123, 255, 0.7);
+            --glass-bg-form-input: rgba(255, 255, 255, 0.9);
+            /* ESTILOS DE ETAPAS (Timeline) */
+            --stage-color-prospecto: #ffc107;
+            --stage-color-propuesta: #007bff;
+            --stage-color-negociacion: #28a745;
+            --stage-color-cerrada: #dc3545;
+        }
+
+        /* RESET BÁSICO Y LAYOUT FLEX */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #74a0e9 0%, #1f4788 100%);
+            display: flex;
+            min-height: 100vh;
+            color: var(--font-dark);
+        }
+
+        /* --- ESTILOS COMPARTIDOS (SIDEBAR, CONTENT, NAVBAR) --- */
+        .sidebar { width: var(--sidebar-width); background-color: var(--glass-bg-dark); color: white; height: 100vh; position: fixed; overflow-x: hidden; padding-top: 20px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-right: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 2px 0 15px rgba(0, 0, 0, 0.3); z-index: 100; transition: width var(--transition-speed) ease; display: flex; flex-direction: column; }
+        .sidebar.closed { width: var(--sidebar-closed-width); }
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; padding: 0 20px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); margin-bottom: 15px; width: var(--sidebar-width); padding-right: 15px; transition: width var(--transition-speed) ease; }
+        .sidebar.closed .sidebar-header { width: var(--sidebar-closed-width); justify-content: center; padding: 0 0 20px 0; }
+        .sidebar.closed .logo-container { display: none; }
+        .logo-container { background-color: var(--logo-bg); border-radius: 8px; padding: 5px; display: flex; align-items: center; justify-content: center; }
+        .logo-container img { max-height: 40px; width: auto; }
+        .toggle-btn { background: none; color: white; border: 1px solid rgba(255, 255, 255, 0.4); padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 1.2em; display: flex; align-items: center; justify-content: center; transition: transform var(--transition-speed) ease; }
+        .sidebar.closed .toggle-btn { transform: rotate(180deg); }
+        .menu ul { list-style: none; }
+        .menu li a { display: flex; align-items: center; padding: 12px 15px; text-decoration: none; color: #dbe4f1; border-radius: 8px; margin: 5px 10px; line-height: 1.2; }
+        .menu li a .bi { font-size: 1.3em; margin-right: 15px; width: 25px; text-align: center; line-height: 0; }
+        .sidebar.closed .menu li a span { display: none; }
+        .sidebar.closed .menu li a { justify-content: center; padding: 12px 0; margin: 5px 15px; }
+        .menu li a.active { background-color: var(--primary-blue); box-shadow: 0 2px 8px rgba(0, 123, 255, 0.5); }
+
+        .content { margin-left: var(--sidebar-width); flex-grow: 1; padding: 25px 30px; width: calc(100% - var(--sidebar-width)); color: var(--font-dark); transition: margin-left var(--transition-speed) ease, width var(--transition-speed) ease; }
+        .content.shifted { margin-left: var(--sidebar-closed-width); width: calc(100% - var(--sidebar-closed-width)); }
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; border-radius: 12px; background-color: var(--glass-bg-light); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 4px 30px var(--shadow-soft); margin-bottom: 30px; }
+        .navbar input[type="text"] { padding: 10px 15px; width: 350px; background-color: rgba(255, 255, 255, 1); border: none; border-radius: 20px; font-size: 0.9em; color: var(--font-dark); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); }
+        .user-info span { color: var(--font-dark); font-weight: 600; }
+        h1 { color: var(--font-light); text-shadow: 0 1px 2px var(--shadow-soft); margin-bottom: 25px; font-size: 2em; }
+        .glass-card { background-color: var(--glass-bg-light); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 4px 30px var(--shadow-soft); border-radius: 15px; padding: 30px; margin-bottom: 30px; }
+        h2 { color: var(--font-dark); font-size: 1.5em; margin-bottom: 20px; border-bottom: 1px solid rgba(0, 0, 0, 0.1); padding-bottom: 10px; }
+
+        /* Estilos de Formulario (Normal y Grid) */
+        .form-grid { display: grid; gap: 20px; margin-bottom: 20px; }
+        .form-grid-3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+        .form-grid-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+        .form-field label { display: block; margin-bottom: 5px; font-weight: 600; color: #444; font-size: 0.9em; }
+        .form-field input, .form-field select, .form-field textarea { width: 100%; padding: 10px; border: none; border-radius: 8px; background-color: rgba(255, 255, 255, 0.95); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); font-size: 1em; color: var(--font-dark); }
+        .form-field input:focus, .form-field select:focus, .form-field textarea:focus { outline: none; box-shadow: 0 0 0 2px var(--primary-blue); }
+
+        /* Estilos de Tabla y Botones */
+        .products-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
+        .products-table th, .products-table td { border: 1px solid rgba(0, 0, 0, 0.1); padding: 10px; text-align: left; }
+        .products-table th { background-color: rgba(0, 123, 255, 0.1); color: var(--font-dark); font-weight: 700; }
+        .action-button { padding: 10px 20px; border: none; border-radius: 8px; font-size: 1em; font-weight: 600; cursor: pointer; transition: background-color 0.2s, box-shadow 0.2s; margin-top: 15px; }
+        .btn-add { background-color: #28a745; color: white; float: right; box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3); }
+        .btn-add:hover { background-color: #1e7e34; }
+        .btn-save { background-color: var(--primary-blue); color: white; margin-right: 15px; box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3); }
+        .btn-save:hover { background-color: #0056b3; }
+
+        /* BUSCADOR DE CLIENTE ESPECÍFICO */
+        .client-search-container { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid rgba(0, 0, 0, 0.15); }
+        .client-search-input { flex-grow: 1; }
+        .btn-search { background-color: #ffc107; color: var(--font-dark); box-shadow: 0 4px 8px rgba(255, 193, 7, 0.4); padding: 10px 15px; }
+        .btn-search:hover { background-color: #e0a800; }
+
+        /* Deshabilitar campos (simulación) */
+        .form-field input:disabled, .form-field select:disabled { background-color: rgba(230, 230, 230, 0.95); color: #888; cursor: not-allowed; }
+
+
+        /* --------------------------------- */
+        /* ESTILOS DE MODAL Y FORMULARIO DINÁMICO UNIFICADOS (CORRECCIÓN FINAL) */
+        /* --------------------------------- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none;
+            justify-content: center; align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active { display: flex; opacity: 1; }
+
+        .modal-content {
+            background-color: var(--glass-bg-light);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 18px; padding: 30px; width: 90%; max-width: 500px;
+            box-shadow: 0 8px 30px var(--shadow-soft);
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+            max-height: 90vh; /* Permite el scroll */
+            overflow-y: auto; /* Permite el scroll */
+        }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+
+        .modal-content h3 { color: var(--font-dark); border-bottom: 1px solid rgba(0, 0, 0, 0.2); padding-bottom: 10px; margin-bottom: 20px; }
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .btn-cancel { background-color: #6c757d; color: white; }
+        .btn-cancel:hover { background-color: #5a6268; }
+
+        /* ESTILOS UNIFICADOS PARA LOS CAMPOS DEL MODAL (fijos y dinámicos) */
+        .inner-glass-card {
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 15px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .inner-glass-card h4 { color: var(--font-dark); margin-bottom: 15px; }
+
+        .form-field-embed { margin-bottom: 15px; }
+
+        /* Las etiquetas e inputs del modal (tanto fijos como dinámicos) ahora usan estos estilos */
+        .form-field-embed label {
+            display: block; font-weight: 600; color: var(--font-dark); font-size: 0.95em; margin-bottom: 5px;
+        }
+        .form-field-embed input,
+        .form-field-embed select,
+        .form-field-embed textarea {
+            width: 100%; padding: 10px; border: none; border-radius: 10px;
+            background-color: var(--glass-bg-form-input);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
+            font-size: 1em; color: var(--font-dark); transition: box-shadow 0.2s;
+        }
+        .form-field-embed input:focus, .form-field-embed select:focus, .form-field-embed textarea:focus {
+            outline: none; box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.4);
+        }
+
+         .form-field-display label {
+            display: block;
+            font-weight: 700;
+            color: #444;
+            font-size: 0.9em;
+            margin-bottom: 3px;
+        }
+
+        .form-field-display p {
+            font-size: 1.1em;
+            color: var(--font-dark);
+            background-color: rgba(0, 0, 0, 0.05); /* Sutil fondo gris */
+            padding: 8px;
+            border-radius: 5px;
+            word-break: break-word;
+        }
+
+        .highlight-id {
+            /* Usamos un color de alto contraste (el amarillo de prospecto) */
+            color: var(--stage-color-prospecto) !important;
+            font-weight: 900 !important; /* Asegura máxima negrita */
+            /* Agregamos un brillo sutil para que el texto resalte sobre el fondo glass */
+            text-shadow: 0 0 5px rgba(255, 193, 7, 0.7);
+            /* Se aplica a ambos: ID de Oportunidad y ID de Cliente */
+        }
+
+        .highlight-cliente {
+            /* Usamos el azul primario definido en tus variables */
+            color: var(--primary-blue) !important;
+            font-weight: 900 !important; /* Asegura máxima negrita */
+            /* Se añade un brillo azul para que resalte */
+            text-shadow: 0 0 5px rgba(0, 123, 255, 0.7);
+            /* Esto garantiza que el estilo se aplique sobre cualquier otro */
+        }
+    </style>
+</head>
+<body>
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-container">
+                <img src="/static/img/3ioplus.png" alt="CRM Logo" title="Tu Logo PNG">
+            </div>
+            <button id="toggleBtn" class="toggle-btn" title="Plegar/Desplegar Menú">&#9776;</button>
+        </div>
+        <nav class="menu">
+            <ul>
+                <li><a href="#"><i class="bi bi-speedometer2"></i> <span>Dashboard</span></a></li>
+                <li><a href="#"><i class="bi bi-people"></i> <span>Clientes</span></a></li>
+                <li class="active"><a href="#" class="active"><i class="bi bi-file-earmark-text"></i> <span>Contratos</span></a></li>
+                <li><a href="/application/oportunidades"><i class="bi bi-bag-check"></i> <span>Oportunidades</span></a></li>
+                <li><a href="#"><i class="bi bi-calendar-check"></i> <span>Tareas y Agenda</span></a></li>
+                <li><a href="#"><i class="bi bi-graph-up-arrow"></i> <span>Reportes</span></a></li>
+                <hr style="margin: 15px 20px; border-color: rgba(255, 255, 255, 0.2);">
+                <li><a href="#"><i class="bi bi-gear"></i> <span>Configuración</span></a></li>
+                <li><a href="#"><i class="bi bi-box-arrow-right"></i> <span>Cerrar Sesión</span></a></li>
+            </ul>
+        </nav>
+    </aside>
+    <main id="content" class="content">
+        <header class="navbar">
+            <input type="text" placeholder="Buscar clientes, tareas o reportes...">
+            <div class="user-info">
+                <span>Hola, Juan Miranda</span>
+            </div>
+        </header>
+        <h1><i class="bi bi-file-earmark-text"></i> Nuevo Contrato Comercial</h1>
+        <form id="contratoForm">
+            <input type="hidden" name="products" value="">
+            <input type="hidden" name="idoportunidad" id="idoportunidad" value="{{oportunidad.id}}">
+             <div class="glass-card">
+    <h2><i class="bi bi-info-circle"></i> Datos de la Oportunidad - <span class="highlight-cliente">#{{ oportunidad.id }}</span></h2>
+    <div class="form-grid form-grid-3 client-details-grid">
+        <div class="form-field-display">
+            <label>Fecha Alta</label>
+            <p id="fechaalta">{{oportunidad.fechaalta}}</p>
+        </div>
+        <div class="form-field-display">
+            <label>Tipo</label>
+            <p id="idtipo">{{tipooportunidad.nombre}}</p>
+        </div>
+        <div class="form-field-display">
+            <label>Responsable</label>
+            <p id="responsable">{{usuario.first_name}} {{usuario.last_name}}</p>
+        </div>
+    </div>
+</div>
+             <div class="glass-card">
+                <h2>2. Condiciones del Contrato</h2>
+                <div class="form-grid form-grid-3">
+                     <div class="form-field"><label for="plazo">Plazo</label><select id="plazo" name="plazo"><option value="12">12 meses</option><option value="24">24  meses</option><option value="36">36  meses</option><option value="60">60  meses</option></select></div>
+                    <div class="form-field"><label for="idVendedor">Vendedor</label>
+                        <select id="idvendedor" name="idvendedor">
+                             {% for vendedor in vendedores %}
+                                <option value="{{ vendedor.idVendedor }}">{{ vendedor.nombre }}</option>
+                            {% endfor %}
+
+                        </select>
+                    </div>
+                    <div class="form-field form-field-iphone">
+                        <label for="fechacontrato">Fecha Contrato</label>
+                        <div class="input-container">
+                            <input
+                                type="date"
+                                id="fechainicio"
+                                name="fechainicio"
+                                value=""
+                                required
+                            >
+                        </div>
+                    </div>
+                </div>
+                <div class="form-grid form-grid-2">
+                    <div class="form-field"><label for="Contacto">Contacto para Firma</label><input type="text" id="Contacto" name="Contacto" placeholder="Nombre de contacto para firma"></div>
+                </div>
+            </div>
+            <div class="glass-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h2>3. Productos y Servicios</h2>
+                    <button type="button" class="action-button btn-add" onclick="abrirModal()">
+                        <i class="bi bi-plus-circle"></i> Agregar Producto
+                    </button>
+                </div>
+                <table class="products-table">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Importe</th>
+                            <th>Frecuencia</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productos-lista">
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: #888;">No hay productos agregados.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="text-align: right;">
+                <button type="submit" class="action-button btn-save"><i class="bi bi-check-circle"></i> Guardar Contrato</button>
+            </div>
+        </form>
+    </main>
+    <div id="modalProducto" class="modal-overlay">
+        <div class="modal-content">
+            <h3><i class="bi bi-box-seam"></i> Datos Específicos del Producto</h3>
+            <div id="formularioFijo">
+                <div class="form-field-embed">
+                    <label for="producto_seleccionado">Producto a Agregar (*)</label>
+                    <select id="idproducto" name="idproducto" required onchange="obtenerCamposDinamicos()">
+                        <option value="">-- Seleccione un Producto --</option>
+                        {% for producto in productos_filtrados %}
+                        <option value="{{ producto.id }}">{{ producto.name }}</option>
+                        {% endfor %}
+                    </select>
+                    </div>
+               <div class="form-field-embed">
+                    <label for="producto_frecuencia">Moneda</label>
+                    <select id="idmoneda" name="idmoneda">
+                        <option value="0">$</option><option value="1">USD</option>
+                    </select>
+                </div>
+                <div class="form-field-embed"><label for="producto_monto">Importe - Sin iva.</label><input type="number" id="importe" name="importe" required></div>
+                <div class="form-field-embed">
+                    <label for="producto_frecuencia">Frecuencia de pago</label>
+                    <select id="idperiodo" name="idperiodo">
+                        <option value="1">Mensual</option><option value="3">Trimestral</option><option value="12">Anual</option><option value="0">Pago Único</option>
+                    </select>
+                </div>
+                <div class="form-field-embed"><label for="producto_clausula">Observaciones</label><textarea id="producto_observaciones" name="producto_observaciones" rows="1" placeholder="Cláusula o descripción corta..."></textarea></div>
+            </div>
+            <div id="formularioDinamico">
+                <p style="text-align: center; color: #888; margin-top: 20px;">Seleccione un producto...</p>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="action-button btn-cancel" onclick="cerrarModal()">Cancelar</button>
+                <button type="button" class="action-button btn-save" onclick="agregarProducto()">Aceptar y Agregar</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        let id = 0;
+        let products = [];
+
+        document.getElementById("contratoForm").addEventListener("submit", function(e) {
+        e.preventDefault(); // prevenimos el submit automático
+        // Emular validaciones HTML5
+        if (!this.checkValidity()) {
+            this.reportValidity(); // muestra los mensajes de error nativos
+            return;
+        }
+
+        if(products.length  > 0 ){
+            const formData = new FormData(this);
+            const jsonData = {};
+
+            for (const [key, value] of formData.entries()) {
+                jsonData[key] = value; // guardamos cada campo en el JSON
+            }
+
+            jsonData["productos"] = products.map(p => JSON.parse(p));
+            jsonData["fechavto"] =  formatToISO(calcularFechaVencimiento());
+            jsonData["fechatope"] = calcularFechaProximoMes();
+            jsonData["idvendedor"] = document.getElementById("idvendedor").value;
+            jsonData["idoportunidad"] = document.getElementById("idoportunidad").value;
+            jsonData["altapor"] = "3iO_COF";
+
+            //Hacemos el post del formulario
+            // Hacés el POST:
+            fetch('/api/contrato', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(jsonData) // convertís tu objeto a JSON real
+            })
+            .then(response => response.json()) // si el servidor devuelve JSON
+            .then(data => {
+                if(!data["error"]){
+                    id = document.getElementById("idoportunidad").value;
+                    window.location.href = `/application/oportunidad/${id}`;
+                }else{
+                    alert("Error al intentar dar de alta la oportunidad.");
+                }
+
+            })
+            .catch(error => {
+              console.log(error);
+            });
+        }else{
+            alert("Debe especificar al menos un  producto.");
+        }
+    });
+
+    function calcularFechaProximoMes() {
+        // 1. Obtener la fecha actual
+        const hoy = new Date();
+
+        // 2. Clonar la fecha para modificarla
+        const fechaResultado = new Date(hoy);
+
+        // 3. Obtener el día original (para evitar el problema de desbordamiento de fin de mes,
+        // ej: 31 de enero + 1 mes no existe)
+        const diaOriginal = fechaResultado.getDate();
+
+        // 4. Sumar 1 mes
+        fechaResultado.setMonth(fechaResultado.getMonth() + 1);
+
+        // 5. Corregir el desbordamiento: si al sumar el mes, el día es diferente al original,
+        // significa que saltamos al siguiente mes. Forzamos la fecha al último día del mes anterior.
+        if (fechaResultado.getDate() !== diaOriginal) {
+            fechaResultado.setDate(0); // Establece la fecha al último día del mes anterior
+        }
+
+        // 6. Formatear la fecha a YYYY-MM-DD (ISO 8601)
+        const year = fechaResultado.getFullYear();
+        // getMonth() es base 0, sumamos 1 y usamos padStart para asegurar 2 dígitos
+        const month = String(fechaResultado.getMonth() + 1).padStart(2, '0');
+        // getDate() es base 1
+        const day = String(fechaResultado.getDate()).padStart(2, '0');
+
+        return `${year}-${month}-${day}`;
+    }
+
+
+    function calcularFechaVencimiento() {
+        // 1. Obtener los valores del HTML
+        const fechaInicialInput = document.getElementById("fechainicio");
+        const plazoInput = document.getElementById("plazo");
+
+        // 1. Obtener la fecha inicial directamente desde el input (string YYYY-MM-DD)
+        const fechaString = fechaInicialInput.value;
+
+        // IMPORTANTE: Crear la fecha con el string en formato YYYY-MM-DD
+        // usando la función de Date() evita problemas de zona horaria.
+        const partes = fechaString.split('-');
+        const fechaInicial = new Date(partes[0], partes[1] - 1, partes[2]); // Año, Mes (0-11), Día
+
+        const mesesPlazo = parseInt(plazoInput.value, 10);
+
+        if (isNaN(fechaInicial.getTime()) || isNaN(mesesPlazo)) {
+            return null;
+        }
+
+        // 2. Guardar el día original del mes
+        const diaOriginal = fechaInicial.getDate();
+
+        // 3. Calcular la fecha de vencimiento (clonar y sumar meses)
+        const fechaVencimiento = new Date(fechaInicial);
+        fechaVencimiento.setMonth(fechaVencimiento.getMonth() + mesesPlazo);
+
+        // 4. RESTABLECER EL DÍA: Forzar que el día sea el día original (05)
+        // Esto previene que se ajuste al último día del mes anterior (04)
+        if (fechaVencimiento.getDate() !== diaOriginal) {
+            // Si al sumar meses se desbordó (ej: 31 de enero + 1 mes = 3 de marzo),
+            // volvemos al último día del mes deseado.
+            fechaVencimiento.setDate(0); // Esto establece la fecha al último día del mes anterior
+            fechaVencimiento.setDate(diaOriginal);
+        }
+
+        return fechaVencimiento;
+    }
+
+    // Función para limpiar campos
+    function limpiarCamposCliente() {
+        const fields = [
+            'cliNombre', 'cliApellido', 'cliRazon', 'cliFantasia', 'nroID', 'idSubPais',
+            'idCiudad', 'idBarrio', 'Calle', 'nroPuerta', 'Apto', 'CodigoPostal',
+            'Telefono', 'Celular', 'eMailAviso', 'Contacto', 'idClienteBusqueda'
+        ];
+        fields.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.value = '';
+        });
+    }
+
+    // --- JS para el sidebar y modal ---
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggleBtn = document.getElementById('toggleBtn');
+        const sidebar = document.getElementById('sidebar');
+        const content = document.getElementById('content');
+
+        toggleBtn.addEventListener('click', function() {
+            sidebar.classList.toggle('closed');
+            content.classList.toggle('shifted');
+        });
+    });
+
+
+    function formatToISO(dateObject) {
+        if (!dateObject) return null;
+
+        // Obtenemos el año, mes y día
+        const year = dateObject.getFullYear();
+        // getMonth() es base 0, así que sumamos 1. Usamos padStart para asegurar dos dígitos (01, 02...)
+        const month = String(dateObject.getMonth() + 1).padStart(2, '0');
+        // getDate() es base 1
+        const day = String(dateObject.getDate()).padStart(2, '0');
+
+        // Devolvemos la cadena en formato YYYY-MM-DD
+        return `${year}-${month}-${day}`;
+    }
+
+    function obtenerCamposDinamicos(){
+        const contenedorDinamico = document.getElementById('formularioDinamico');
+
+        const idProductoSeleccionado =  document.getElementById('idproducto').value;
+        const urlDinamica = `/application/dinamic-form/${idProductoSeleccionado}`; // URL Flask
+
+        // Limpiar el contenido previo
+        contenedorDinamico.innerHTML = '<p style="text-align: center; color: #888; margin-top: 20px;">Cargando campos dinámicos...</p>';
+
+        // 3. Ejecutar la solicitud Fetch para cargar el contenido dinámico
+        fetch(urlDinamica)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Error al cargar el formulario del producto. (Asegúrate de que la ruta Flask esté activa)');
+            }
+            return response.text();
+        })
+        .then(html => {
+            // Inyectar el HTML dinámico
+            contenedorDinamico.innerHTML = html;
+        })
+        .catch(error => {
+            console.error(error);
+            contenedorDinamico.innerHTML = '<p style="color:red; text-align:center;">ERROR: No se pudo cargar el formulario dinámico. (Revisa tu consola)</p>';
+        });
+    }
+
+    function abrirModal() {
+        const modal = document.getElementById('modalProducto');
+        // 2. Mostrar el modal
+        modal.classList.add('active');
+    }
+
+    function cerrarModal() {
+        document.getElementById('modalProducto').classList.remove('active');
+        // Limpiar campos del modal (fijos)
+        document.getElementById('importe').value = '';
+        document.getElementById('idmoneda').value = '0';
+        document.getElementById('idperiodo').value = '1';
+    }
+
+    //Remueve un producto de los productos a contratar
+    function remove(id){
+        let productsParsed = products.map(p => JSON.parse(p));
+
+        productsParsed = productsParsed.filter(p => Number(p.id) !== Number(id));
+
+        // Si necesitás volver a guardarlo como JSON strings:
+        products = productsParsed.map(p => JSON.stringify(p));
+    }
+
+    function agregarProducto() {
+        const productoseleccionado = document.getElementById('idproducto');
+        const idproducto = productoseleccionado.value;
+        const selectedIndex = productoseleccionado.selectedIndex;
+        const selectedOption = productoseleccionado.options[selectedIndex];
+        const nombreproducto = selectedOption.textContent;
+        const importe = document.getElementById('importe').value;
+        const idperiodo = document.getElementById('idperiodo').value;
+        const idmoneda = document.getElementById('idmoneda').value;
+        const lista = document.getElementById('productos-lista');
+
+        if (!importe) {
+            alert('Debe completar importe del producto.');
+            return;
+        }
+
+        const noProductsRow = lista.querySelector('#productos-lista tr:only-child td[colspan="4"]');
+        if (noProductsRow && lista.rows.length === 1) {
+            noProductsRow.closest('tr').remove();
+        }
+
+        // Obtenemos campos dinamicos
+        const form = document.getElementById('dinamicForm');
+
+        const data = {};
+        data["idproducto"] = idproducto;
+        data["importe"] = importe;
+        data["idmoneda"] = idmoneda;
+        data["idperiodo"] = idperiodo;
+
+        // Recorremos todos los elementos del formulario
+        for (let element of form.elements) {
+            if (element.name && element.value !== undefined) {
+                data[element.name] = element.value;
+            }
+        }
+
+        id = id + 1;
+        data["id"] =  id;
+
+        // Convertimos a JSON
+        const jsonData = JSON.stringify(data);
+
+        products.push(jsonData);
+
+        const nuevaFila = document.createElement('tr');
+        nuevaFila.innerHTML = `
+            <td>${nombreproducto}</td>
+            <td>$ ${parseFloat(importe).toFixed(2)}</td>
+            <td>${idperiodo}</td>
+            <td><button type="button" onclick="this.closest('tr').remove(); remove(${id});" style="background: none; border: none; cursor: pointer; color: #dc3545;" title="Eliminar"><i class="bi bi-trash"></i></button></td>
+        `;
+
+        lista.appendChild(nuevaFila);
+
+        console.log(products);
+
+        cerrarModal();
+    }
+
+    function buscarPrecio(idproduct, idfield) {
+        const select = document.getElementById("campo_" + idfield);
+
+        const valorSeleccionado = select.value;
+        if (!valorSeleccionado) return;
+
+        // Llamada al backend
+        fetch(`/api/product-price/${idproduct}/${idfield}/${encodeURIComponent(valorSeleccionado)}`)
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById("importe").value = data.importe;
+            })
+            .catch(err => console.error("Error al intentar obtener el precio:", err));
+    }
+
+    function  chargeCombo(idproduct, idfield, filterby){
+        const select = document.getElementById("campo_" + idfield);
+        const comboDestino = document.getElementById("campo_" + filterby);
+        const valorSeleccionado = select.value;
+
+        // Llamada al backend
+        fetch(`/api/product-field-filter/${idproduct}/${filterby}/${valorSeleccionado}`)
+        .then(r => r.json())
+        .then(data => {
+            // 2. Limpiar opciones previas del combobox
+            comboDestino.innerHTML = '<option value="">Seleccione una opción...</option>';
+
+            // 3. Verificar que 'data' sea un array iterable
+            if (Array.isArray(data) && data.length > 0) {
+                // 4. Iterar sobre el array JSON para construir las opciones
+                data.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = item.value;
+                        comboDestino.appendChild(option);
+                    });
+                }
+        })
+        .catch(err => console.error("Error al intentar obtener los datos.", err));
+    }
+
+
+    </script>
+</body>
+</html>

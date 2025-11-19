@@ -1,0 +1,36 @@
+<form id="dinamicForm">
+{% for campo in campos %}
+    <div class="form-field-embed">
+        <label for="campo_{{ campo.id }}">
+            {{ campo.name }}
+            {% if campo.regex %}
+                <i class="bi bi-info-circle" title="Requiere formato específico."></i>
+            {% endif %}
+        </label>
+        {% if campo.type == 'TEXT' %}
+           <div class="form-field"><label for="producto_nombre">Nombre del Producto/Servicio</label><input type="text" id="campo_{{ campo.id }}" name="campo_{{ campo.id }}" required></div>
+        {% elif campo.type == 'NUMBER' %}
+            <input class="form-field" type="number" id="campo_{{ campo.id }}" name="campo_{{ campo.id }}">
+        {% elif campo.type == 'DATE' %}
+            <input type="date" id="campo_{{ campo.id }}" name="campo_{{ campo.id }}">
+        {% elif campo.type == 'LONGTEXT' %}
+            <textarea id="campo_{{ campo.id }}" name="campo_{{ campo.id }}" rows="3" placeholder="Detalles o cláusula larga..."></textarea>
+        {% elif campo.type == 'COMBO' %}
+            <select id="campo_{{ campo.id }}" name="campo_{{ campo.id }}" class="form-field" required  {% if campo.pricefilter == 1 %}
+                onchange="buscarPrecio({{ campo.idProduct }},{{ campo.id }})"
+            {% endif %} {% if campo.filterby is not  none %}
+                onchange="chargeCombo({{ campo.idProduct }},{{ campo.id }},{{ campo.filterby }})"
+            {% endif %}>
+                <option value="" disabled selected>Seleccione una opción</option>
+                {# Iterar sobre la lista de STRINGS adjunta por Flask #}
+                {% for valor in campo.opciones_combo %}
+                    <option value="{{ valor.id }}">{{ valor.valor }}</option>
+                {% endfor %}
+            </select>
+        {% else %}
+            <input type="text" id="campo_{{ campo.id }}" name="campo_{{ campo.id }}" placeholder="{{ campo.description }}">
+        {% endif %}
+    </div>
+{% endfor %}
+</form>
+

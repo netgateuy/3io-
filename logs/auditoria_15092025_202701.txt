@@ -1,0 +1,8 @@
+
+
+■▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀■
+■ WORDPRESS PLUGIN SCANNER ■
+■▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄■
+
+↳ Wordlist (ruta): 
+[!] Error: [Errno 21] Is a directory: '/'
