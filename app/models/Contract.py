@@ -21,3 +21,5 @@ class Contract(db.Model):
     contrato = db.Column(db.Text, unique=False)
     md5 = db.Column(db.String(128), unique=False)
     fechasincronizado = db.Column(db.DateTime)
+
+

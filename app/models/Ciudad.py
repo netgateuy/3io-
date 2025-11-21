@@ -8,6 +8,7 @@ class Ciudad(db.Model):
     nombre = db.Column(db.String(32), unique=False)
     idCiudadGNS = db.Column(db.Integer, unique=False)
     visible = db.Column(db.Boolean)
+
     __table_args__ = (
         ForeignKeyConstraint(
             ['idPais'], ['pais.idPais']

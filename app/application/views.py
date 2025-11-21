@@ -1,18 +1,16 @@
-from flask import request, jsonify
-import base64
 from ..models.Contract import Contract
-from ..models.Product import Product,ProductField, ProductFieldValue
+from ..models.Product import Product,ProductField, ProductFieldValue, ProductContract
 from ..models.Pais import Pais
 from ..models.SubPais import SubPais
 from ..models.TipoPago import TipoPago
 from ..models.Cliente import TipoID, Cliente
 from ..models.Vendedor import Vendedor
 from ..models.User import User
-from ..models.Oportunidad import TipoOportunidad, Oportunidad, EstadoOportunidad, TipoAccion, AccionOportunidad
+from ..models.Oportunidad import TipoOportunidad, Oportunidad, EstadoOportunidad, TipoAccion, AccionOportunidad, ArchivoOportunidad, TipoArchivo
 from . import application
-from time import gmtime, strftime
 from app import db
-from flask import Flask,render_template
+from flask import render_template, abort, Response
+import mimetypes
 
 @application.route('/')
 def index():
@@ -72,8 +70,20 @@ def oportunidad(id):
         estados = EstadoOportunidad.query.filter_by(idoportunidad=id).all()
         tiposaccion = TipoAccion.query.filter_by(visible=1).all()
         contratos = Contract.query.filter_by(idoportunidad=id).all()
+        tiposarchivos = TipoArchivo.query.filter_by(visible=1).order_by(TipoArchivo.nombre.asc()).all()
+        archivos = (
+            db.session.query(ArchivoOportunidad, TipoArchivo)
+            .join(TipoArchivo, ArchivoOportunidad.idtipoarchivo == TipoArchivo.id)
+            .all()
+        )
+        for c in contratos:
+            c.productos = (db.session.query(ProductContract, Product)
+                .join(Product, ProductContract.idproduct == Product.id)
+                .filter(ProductContract.idcontract == c.id)
+                .all())
+
         acciones = AccionOportunidad.query.filter_by(idoportunidad=id).all()
-        return render_template('/application/oportunidad.html',oportunidad=oportunidad,cliente=cliente,tipooportunidad=tipooportunidad,usuario=usuario,subpais=subpais,estados=estados,tiposaccion=tiposaccion,acciones=acciones,contratos=contratos)
+        return render_template('/application/oportunidad.html',oportunidad=oportunidad,cliente=cliente,tipooportunidad=tipooportunidad,usuario=usuario,subpais=subpais,estados=estados,tiposaccion=tiposaccion,acciones=acciones,contratos=contratos,archivos=archivos,tiposarchivos=tiposarchivos)
     except Exception as e:
         return str(e)
 
@@ -93,3 +103,28 @@ def dinamicform(id):
         return render_template('/application/dinamicform.html',campos=campos_dinamicos)
     except Exception as e:
         return str(e)
+
+@application.route("/archivo-oportunidad/<int:idoportunidad>/<int:idarchivo>")
+def ver_archivo(idoportunidad, idarchivo):
+    archivo = (
+        ArchivoOportunidad
+        .query
+        .filter_by(id=idarchivo, idoportunidad=idoportunidad)
+        .first()
+    )
+
+    if not archivo:
+        abort(404)
+
+    # Detectar el MIME según la extensión
+    mimetype, _ = mimetypes.guess_type(archivo.filename)
+    if mimetype is None:
+        mimetype = "application/octet-stream"
+
+    return Response(
+        archivo.archivo,          # binario desde la BD
+        mimetype=mimetype,        # tipo real
+        headers={
+            "Content-Disposition": f"inline; filename={archivo.filename}"
+        }
+    )

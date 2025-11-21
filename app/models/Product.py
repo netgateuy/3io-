@@ -1,6 +1,8 @@
 from app import db
 from sqlalchemy.dialects.mysql import BIT
 
+from sqlalchemy import ForeignKeyConstraint
+
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(32), unique=False)
@@ -68,6 +70,12 @@ class ProductContract(db.Model):
     idmoneda = db.Column(db.Integer)
     idperiodo = db.Column(db.Integer)
     importe = db.Column(db.Double)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['idcontract'], ['contract.id']
+        ),
+    )
 
 class ProductClient(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)

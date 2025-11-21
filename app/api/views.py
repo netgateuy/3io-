@@ -3,7 +3,7 @@ import base64, re
 from ..models.Contract import Contract
 from ..models.Product import ProductContract, ContractProductFieldValue, ProductFieldPrice, ProductFieldValue
 from ..models.Equipo import Equipo, Marca, Modelo, Proveedor
-from ..models.Oportunidad import Oportunidad, EtapaOportunidad, TipoOportunidad, AccionOportunidad, EstadoOportunidad
+from ..models.Oportunidad import Oportunidad, EtapaOportunidad, TipoOportunidad, AccionOportunidad, EstadoOportunidad, ArchivoOportunidad
 from ..models.Cliente import Cliente, TipoID
 from ..models.SubPais import SubPais
 from ..models.Pais import Pais
@@ -514,6 +514,7 @@ def get_ciudades(idPais,idSubPais):
 @api.route('/forma_pago/<idTipoPago>', methods=['GET'])
 def get_forma_pago(idTipoPago):
     formaspago = FormaPago.query.filter_by(idTipoPago=idTipoPago).all()
+
     data = []
     for fp in formaspago:
         data.append({
@@ -522,3 +523,111 @@ def get_forma_pago(idTipoPago):
             "descripcion": fp.descripcion
         })
     return jsonify(data)
+
+@api.route("/subir-archivo", methods=["POST"])
+def subir_archivo():
+    archivo = request.files.get("archivo")
+    if not archivo:
+        return jsonify(
+            observation="Debe adjuntar un archivo.",
+            error=True,
+            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        )
+
+    archivo_nuevo = ArchivoOportunidad(
+        idoportunidad=request.form.get("idoportunidad"),
+        filename=archivo.filename,
+        fechaalta=datetime.now(),
+        archivo=archivo.read(),
+        observaciones=request.form.get("observaciones"),
+        altapor=request.form.get("altapor"),
+        idtipoarchivo=request.form.get("idtipoarchivo")
+    )
+
+    db.session.add(archivo_nuevo)
+    db.session.commit()
+
+    return jsonify(
+        id=archivo_nuevo.id,
+        idoportunidad="Archivo dado de alta correctamente.",
+        observation="Archivo dado de alta correctamente.",
+        error=False,
+        serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+    )
+
+
+def getOportunidad(oportunidad, contratos):
+    # Convertimos oportunidad a dict
+    oportunidad_json = {
+        "id": oportunidad.id,
+        "fechaalta": str(oportunidad.fechaalta),
+        "estado": oportunidad.estado,
+        "idtipo": oportunidad.idtipo,
+        "fechacancelado": str(oportunidad.fechacancelado) if oportunidad.fechacancelado else None,
+        "fechainicio": str(oportunidad.fechainicio) if oportunidad.fechainicio else None,
+        "fechafin": str(oportunidad.fechafin) if oportunidad.fechafin else None,
+        "idcliente": oportunidad.idcliente,
+        "responsable": oportunidad.responsable,
+    }
+
+    # Convertimos contratos a una lista de dicts
+    contratos_json = []
+    for c in contratos:
+        contratos_json.append({
+            "id": c.id,
+            "fechaalta": str(c.fechaalta),
+            "mes": c.mes,
+            "anio": c.mes,
+            "fechacontratado": str(c.fechacontratado) if c.fechacontratado else None,
+            "altapor": c.altapor,
+            "fechavto": str(c.fechavto) if c.fechavto else None,
+            "fechatope": str(c.fechatope) if c.fechatope else None,
+            "fechaconfirmado": str(c.fechaconfirmado) if c.fechaconfirmado else None,
+            "confirmadopor": c.confirmadopor,
+            "codigo": c.codigo,
+            "fechabaja": str(c.fechabaja) if c.fechabaja else None,
+            "bajapor": c.bajapor,
+            "sendmail": c.sendmail,
+            "comercial": c.comercial,
+            "idvendedor": c.idvendedor,
+            "contrato": c.contrato,
+            "md5": c.md5,
+            "fechasincronizado": str(c.fechasincronizado) if c.fechasincronizado else None,
+        })
+
+    acciones_a = AccionOportunidad.query.filter_by(idoportunidad=oportunidad.id).all()
+    #acciones
+    acciones = []
+    for a in acciones_a:
+        acciones.append({
+            "id": a.id,
+            "idtipoaccion": a.idtipoaccion,
+            "altapor": a.altapor,
+            "fechaalta": str(a.fechaalta) if a.fechaalta else None,
+            "accion" : a.accion
+        })
+
+    # archivos
+    archivos = []
+
+    oportunidad_json["aciones"] = acciones
+    oportunidad_json["archivos"] = archivos
+    oportunidad_json["contratos"] = contratos_json
+
+    # JSON final
+    return jsonify(oportunidad_json)
+
+@api.route("/avanzar-etapa/<idoportunidad>", methods=["POST"])
+def avanzar_etapa(idoportunidad):
+    #Obtengo la primer etapa sin realizar
+    oportunidad = Oportunidad.query.filter_by(id=idoportunidad).first()
+    contratos = Contract.query.filter_by(idoportunidad=idoportunidad).all()
+    etapa = EstadoOportunidad.query.filter_by(idoportunidad=idoportunidad,fecharealizado=None).order_by(EstadoOportunidad.id).first()
+    oportunidad = getOportunidad(oportunidad, contratos)
+    if etapa.automatica is None:
+        if etapa.notificar:
+            #hay que hacer un post a la uri que indica la etapa
+            oportunidad = getOportunidad(oportunidad, contratos)
+            return oportunidad
+
+    return oportunidad

@@ -73,9 +73,46 @@
         .form-field input:focus, .form-field select:focus, .form-field textarea:focus { outline: none; box-shadow: 0 0 0 2px var(--primary-blue); }
 
         /* Estilos de Tabla y Botones */
-        .products-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
-        .products-table th, .products-table td { border: 1px solid rgba(0, 0, 0, 0.1); padding: 10px; text-align: left; }
-        .products-table th { background-color: rgba(0, 123, 255, 0.1); color: var(--font-dark); font-weight: 700; }
+        /* --- ESTILOS DE TABLA MEJORADOS (MÁS GLASS) --- */
+        .products-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 15px;
+            font-size: 0.9em;
+            overflow: hidden;
+            border-radius: 12px;
+        }
+        .products-table th, .products-table td {
+            border: none;
+            padding: 12px 15px;
+            text-align: left;
+        }
+        .products-table th {
+            background-color: rgba(0, 123, 255, 0.2);
+            color: var(--font-dark);
+            font-weight: 700;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        /* Redondear las esquinas solo del encabezado */
+        .products-table thead tr:first-child th:first-child {
+            border-top-left-radius: 12px;
+        }
+        .products-table thead tr:first-child th:last-child {
+            border-top-right-radius: 12px;
+        }
+
+        /* Estilos de las Filas de Datos */
+        .products-table tbody tr {
+            transition: background-color 0.2s;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+        }
+        .products-table tbody tr:hover {
+            background-color: rgba(0, 123, 255, 0.05);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
         .action-button { padding: 10px 20px; border: none; border-radius: 8px; font-size: 1em; font-weight: 600; cursor: pointer; transition: background-color 0.2s, box-shadow 0.2s; margin-top: 15px; }
         .btn-add { background-color: #28a745; color: white; float: right; box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3); }
         .btn-add:hover { background-color: #1e7e34; }
@@ -219,6 +256,33 @@
             outline: none; box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.4);
         }
 
+        /* Estilo para el icono de despliegue */
+.toggle-icon {
+    font-size: 1.1em; /* Un poco más grande para ser visible */
+    vertical-align: middle; /* Alinea con el texto si hay alguno */
+    margin-right: 5px; /* Pequeño espacio a la derecha */
+    transition: transform 0.25s ease-out; /* Transición suave de rotación */
+    color: var(--primary-blue); /* Un toque de color */
+}
+
+/* Rotación del icono para mostrar "menos" */
+.toggle-icon.rotated {
+    transform: rotate(45deg); /* Gira el "+" para que parezca un "x" o "menos" */
+}
+
+.oportunidad-table th:nth-child(1) { width: 5%; }
+.oportunidad-table th:nth-child(5) { width: 15%; }
+.oportunidad-table th:nth-child(6) { width: 10%; }
+.highlight-id {
+    color: var(--stage-color-prospecto) !important;
+    font-weight: 900 !important;
+    text-shadow: 0 0 5px rgba(255, 193, 7, 0.7);
+}
+
+table th {
+    white-space: nowrap;
+}
+
 </style>
 </head>
 <body>
@@ -278,10 +342,13 @@
 
                     <div class="stage {{ estado_clase }}">
                         <div class="stage-icon"><i class="bi {{ estado.icono }}"></i></div>
-                        <span class="stage-label">{{ estado.nombre }}</span>
+                        <span class="stage-label" >{{ estado.nombre }}</span>
                     </div>
                 {% endfor %}
             </div>
+            <button class="action-button btn-save">
+    <i class="bi bi-arrow-right-circle"></i> Avanzar etapa
+</button>
         </div>
         <div class="glass-card">
             <h2><i class="bi bi-info-circle"></i> Datos de la Oportunidad</h2>
@@ -338,41 +405,123 @@
         </div>
         <div class="glass-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <h2><i class="bi bi-file-text"></i> Contratos y Productos Asociados</h2>
+                <h2><i class="bi bi-file-text"></i> Contratos asociados</h2>
                 <button type="button" class="action-button btn-add" onclick="abrirModalNuevoContrato()">
                     <i class="bi bi-file-earmark-plus"></i> Añadir Nuevo Contrato
                 </button>
             </div>
 
-            <table class="products-table">
+           <table class="products-table">
+    <thead>
+        <tr>
+            <th></th> {# Columna para el icono de despliegue #}
+            <th>Id.</th>
+            <th>Fecha alta</th>
+            <th>Alta por</th>
+            <th>Fecha vencimiento</th>
+            <th>Fecha tope</th>
+            <th>Fecha confirmado</th>
+        </tr>
+    </thead>
+    <tbody id="contratos-lista">
+        {% if contratos|length > 0 %}
+            {% for contrato in contratos %}
+
+            {# --- FILA PRINCIPAL --- #}
+            <tr id="row-main-{{ contrato.id }}" onclick="toggleDetails({{ contrato.id }})" style="cursor: pointer;">
+                <td>
+                    {# CAMBIO CLAVE: Usamos bi-plus-circle para el inicio #}
+                    <i id="icon-{{ contrato.id }}" class="bi bi-plus-circle toggle-icon"></i>
+                </td>
+                <td>{{ contrato.id }}</td>
+                <td>{{ contrato.fechaalta }}</td>
+                <td>{{ contrato.altapor }}</td>
+                <td>{{ contrato.fechavencimiento }}</td>
+                <td>{{ contrato.fechatope or '' }}</td>
+                <td>
+                    {{ contrato.fechaconfirmado or '' }}
+                </td>
+            </tr>
+
+            {# --- FILA DE DETALLES OCULTA --- #}
+            <tr id="row-detail-{{ contrato.id }}" class="detail-row" style="display: none;">
+                <td colspan="8">
+                    <div style="padding: 10px 20px; background-color: rgba(0, 123, 255, 0.05); border-radius: 8px;">
+                        <strong>Productos Asociados:</strong>
+                        <ul style="list-style: none; margin-top: 5px; padding-left: 20px;">
+                            {# SIMULACIÓN DE PRODUCTOS (Esto vendría de tu backend) #}
+                            {% for producto,tipo in contrato.productos %}
+                            <li>- <b>Producto:</b> {{ tipo.name }} <b>Período:</b> {{ producto.idperiodo }} <b>Importe:</b> $ {{ producto.importe }}</li>
+                            {% else %}
+                                <li>No hay productos detallados para este contrato.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </td>
+            </tr>
+
+            {% endfor %}
+        {% else %}
+            <tr>
+                <td colspan="8" style="text-align: center; color: #888;">Aún no hay contratos asociados a esta oportunidad.</td>
+            </tr>
+        {% endif %}
+    </tbody>
+</table>
+        </div>
+
+        <div class="glass-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2><i class="bi bi-file-text"></i> Documentos asociados</h2>
+                <button type="button" class="action-button btn-add" onclick="abrirModalArchivo()">
+                    <i class="bi bi-file-earmark-plus"></i> Añadir nuevo documento
+                </button>
+            </div>
+
+            <table class="products-table oportunidad-table">
                 <thead>
                     <tr>
                         <th>Id.</th>
                         <th>Fecha alta</th>
                         <th>Alta por</th>
-                        <th>Fecha vencimiento</th>
-                        <th>Fecha tope</th>
-                        <th>Fecha confirmado</th>
+                        <th>Observaciones</th>
+                        <th>Tipo</th>
+                        <th>Formato</th>
+                        <th>Archivo</th>
                     </tr>
                 </thead>
                 <tbody id="contratos-lista">
-                    {% if contratos|length > 0 %}
-                        {% for contrato in contratos %}
-                        <tr>
-                            <td>{{ contrato.id }}</td>
-                            <td>{{ contrato.fechaalta }}</td>
-                            <td>{{ contrato.altapor }}</td>
-                            <td>{{ contrato.fechavencimiento }}</td>
-                            <td><span style="font-weight: 600; color: #28a745;">Confirmado</span></td>
-                            <td>
-                                <a href="/contrato/{{ contrato.id }}" title="Ver Detalle"><i class="bi bi-eye"></i></a>
-                                <button onclick="eliminarContrato({{ contrato.id }})" style="background: none; border: none; cursor: pointer; color: #dc3545;" title="Desvincular"><i class="bi bi-link-slash">&nbsp;</i></button>
-                            </td>
-                        </tr>
+                    {% if archivos|length > 0 %}
+                        {% for archivo, tipoarchivo in archivos %}
+                            <tr>
+                                <td>{{ archivo.id }}</td>
+                                <td>{{ archivo.fechaalta }}</td>
+                                <td>{{ archivo.altapor }}</td>
+                                <td>{{ archivo.observaciones }}</td>
+                                <td>{{ tipoarchivo.nombre }}</td>
+                                <td>
+                                    {% set ext = archivo.filename.split('.')[-1]|lower %}
+
+                                    {% if ext in ['jpg', 'jpeg', 'png'] %}
+                                        <i class="bi bi-image"></i>
+                                    {% elif ext == 'pdf' %}
+                                        <i class="bi bi-filetype-pdf"></i>
+                                    {% elif ext in ['mp3', 'wav'] %}
+                                        <i class="bi bi-music-note-beamed"></i>
+                                    {% else %}
+                                        <i class="bi bi-file-earmark"></i>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="/application/archivo-oportunidad/{{ archivo.idoportunidad }}/{{ archivo.id }}" target="_blank">
+                                        {{ archivo.filename }}
+                                    </a>
+                                </td>
+                            </tr>
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="5" style="text-align: center; color: #888;">Aún no hay contratos asociados a esta oportunidad.</td>
+                            <td colspan="7" style="text-align: center; color: #888;">Aún no hay archivos asociados a esta oportunidad.</td>
                         </tr>
                     {% endif %}
                 </tbody>
@@ -438,6 +587,32 @@
             </div>
         </div>
     </div>
+
+    <div id="modalarchivo" class="modal-overlay">
+        <div class="modal-content">
+            <h3><i class="bi bi-file-earmark-arrow-up"></i> Subir nuevo archivo</h3>
+            <div id="formiularioArchivo">
+                <div class="form-field-embed">
+                    <label for="producto_seleccionado">Tipo de archivo (*)</label>
+                    <select id="idtipoarchivo" name="idtipoarchivo" required>
+                        <option value="">-- Seleccione un tipo --</option>
+                        {% for tipoarchivo in tiposarchivos %}
+                        <option value="{{tipoarchivo.id}}">{{tipoarchivo.nombre}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-field-embed">
+                    <label for="producto_seleccionado">Archivo</label>
+                    <input type="file" name="archivo" accept=".pdf, .jpg, .jpeg, .png, .wav, .mp3">
+                </div>
+                <div class="form-field-embed"><label for="producto_clausula">Observaciones</label><textarea id="observacionesarchivo" name="observacionesarchivo" rows="1" placeholder="Observaciones del archivo..."></textarea></div>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="action-button btn-save" onclick="agregarArchivo()">Agregar</button>
+                <button type="button" class="action-button btn-cancel" onclick="cerrarModalArchivo()">Cancelar</button>
+            </div>
+        </div>
+    </div>
     <script>
         // JS para el sidebar
         document.addEventListener('DOMContentLoaded', function() {
@@ -455,6 +630,17 @@
             const modal = document.getElementById('modalaccion');
             // 2. Mostrar el modal
             modal.classList.add('active');
+        }
+
+         function abrirModalArchivo() {
+            const modal = document.getElementById('modalarchivo');
+            // 2. Mostrar el modal
+            modal.classList.add('active');
+        }
+
+        function cerrarModalArchivo() {
+            document.getElementById('modalarchivo').classList.remove('active');
+            document.getElementById('observacionesarchivo').value = '';
         }
 
         function cerrarModal() {
@@ -490,6 +676,68 @@
               console.log(error);
             });
         }
+
+
+        function agregarArchivo() {
+            // Crear el FormData
+            const formData = new FormData();
+
+            // Obtener valores
+            const idtipoarchivo = document.getElementById("idtipoarchivo").value;
+            const archivo = document.querySelector("input[name='archivo']").files[0];
+            const observaciones = document.getElementById("observacionesarchivo").value;
+            const idoportunidad = {{ oportunidad.id }};
+
+            // Validaciones simples
+            if (!idtipoarchivo) {
+                alert("Debe seleccionar un tipo de archivo");
+                return;
+            }
+            if (!archivo) {
+                alert("Debe seleccionar un archivo");
+                return;
+            }
+
+            // Agregar los datos al formData
+            formData.append("idtipoarchivo", idtipoarchivo);
+            formData.append("idoportunidad", idoportunidad);
+            formData.append("archivo", archivo);
+            formData.append("observacionesarchivo", observaciones);
+
+            // Hacer POST (ajustar la URL donde procesás el archivo en Flask)
+            fetch("/api/subir-archivo", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Podés personalizar qué hacer con la respuesta
+                console.log(data);
+                alert("Archivo subido correctamente");
+                cerrarModalArchivo();
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                alert("Hubo un error al subir el archivo");
+            });
+        }
+
+        function toggleDetails(contratoId) {
+    const detailRow = document.getElementById('row-detail-' + contratoId);
+    const icon = document.getElementById('icon-' + contratoId);
+
+    if (detailRow.style.display === 'none') {
+        // Mostrar los detalles
+        detailRow.style.display = 'table-row';
+        icon.classList.remove('bi-chevron-right');
+        icon.classList.add('bi-chevron-down');
+    } else {
+        // Ocultar los detalles
+        detailRow.style.display = 'none';
+        icon.classList.remove('bi-chevron-down');
+        icon.classList.add('bi-chevron-right');
+    }
+}
 
         // Simulación de la función para abrir el modal (debería abrir el formulario de Alta de Contrato)
         function abrirModalNuevoContrato() {
