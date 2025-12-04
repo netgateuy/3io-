@@ -283,6 +283,99 @@ table th {
     white-space: nowrap;
 }
 
+/* Overlay oscuro de fondo */
+.ios-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.4); /* Oscurecimiento sutil */
+    backdrop-filter: blur(4px); /* Desenfoque del fondo de la página */
+    display: none; /* Oculto por defecto */
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.ios-modal-overlay.active {
+    display: flex;
+    opacity: 1;
+}
+
+/* La tarjeta del diálogo (El "Glass" de iPhone) */
+.ios-glass-dialog {
+    width: 300px; /* Ancho típico de alerta móvil */
+    background: rgba(255, 255, 255, 0.85); /* Blanco translúcido */
+    backdrop-filter: blur(20px); /* Desenfoque fuerte estilo iOS */
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 20px; /* Bordes muy redondeados */
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    overflow: hidden; /* Para que los botones respeten el borde */
+    transform: scale(1.1);
+    transition: transform 0.2s ease;
+}
+
+.ios-modal-overlay.active .ios-glass-dialog {
+    transform: scale(1);
+}
+
+/* Contenido del texto */
+.ios-dialog-content {
+    padding: 25px 20px 20px;
+}
+
+.ios-dialog-content h3 {
+    margin: 0 0 10px;
+    font-size: 1.1em;
+    color: #000;
+    font-weight: 700;
+}
+
+.ios-dialog-content p {
+    margin: 0;
+    font-size: 0.95em;
+    color: #333;
+    line-height: 1.4;
+}
+
+/* Botones de acción */
+.ios-dialog-actions {
+    display: flex;
+    border-top: 1px solid rgba(60, 60, 67, 0.2); /* Línea divisoria fina */
+}
+
+.ios-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 15px 0;
+    font-size: 1.05em;
+    cursor: pointer;
+    font-family: inherit; /* Hereda tu fuente SF Pro */
+    transition: background-color 0.2s;
+}
+
+.ios-btn:active {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.ios-btn-cancel {
+    color: #007aff; /* Azul iOS */
+    border-right: 1px solid rgba(60, 60, 67, 0.2); /* Divisor vertical */
+    font-weight: 400;
+}
+
+.ios-btn-confirm {
+    color: #007aff;
+    font-weight: 700; /* Negrita para la acción principal */
+}
+
+/* Estilo para error (rojo) */
+.ios-btn-error {
+    color: #ff3b30 !important;
+}
+
 </style>
 </head>
 <body>
@@ -346,9 +439,21 @@ table th {
                     </div>
                 {% endfor %}
             </div>
-            <button class="action-button btn-save">
+            <button type="button" class="action-button btn-save" onclick="abrirConfirmacionAvance({{ oportunidad.id }})">
     <i class="bi bi-arrow-right-circle"></i> Avanzar etapa
 </button>
+            <div id="iosModal" class="ios-modal-overlay">
+    <div class="ios-glass-dialog">
+        <div class="ios-dialog-content">
+            <h3 id="iosModalTitle">Avanzar Etapa</h3>
+            <p id="iosModalMessage">¿Estás seguro de que deseas avanzar esta oportunidad a la siguiente etapa?</p>
+        </div>
+        <div class="ios-dialog-actions">
+            <button class="ios-btn ios-btn-cancel" onclick="cerrarIosModal()">Cancelar</button>
+            <button id="btnConfirmarAccion" class="ios-btn ios-btn-confirm" onclick="ejecutarAvance()">Avanzar</button>
+        </div>
+    </div>
+</div>
         </div>
         <div class="glass-card">
             <h2><i class="bi bi-info-circle"></i> Datos de la Oportunidad</h2>
@@ -450,8 +555,8 @@ table th {
                         <strong>Productos Asociados:</strong>
                         <ul style="list-style: none; margin-top: 5px; padding-left: 20px;">
                             {# SIMULACIÓN DE PRODUCTOS (Esto vendría de tu backend) #}
-                            {% for producto,tipo in contrato.productos %}
-                            <li>- <b>Producto:</b> {{ tipo.name }} <b>Período:</b> {{ producto.idperiodo }} <b>Importe:</b> $ {{ producto.importe }}</li>
+                            {% for producto,tipo,moneda in contrato.productos %}
+                            <li>- <b>Producto:</b> {{ tipo.name }} <b>Período:</b> {{ producto.idperiodo }} <b>Importe:</b> {{ moneda.abreviacion }} {{ producto.importe }}</li>
                             {% else %}
                                 <li>No hay productos detallados para este contrato.</li>
                             {% endfor %}
@@ -750,6 +855,80 @@ table th {
                 // Aquí iría la lógica fetch para hacer DELETE o UPDATE en el backend
             }
         }
+
+        let oportunidadIdParaAvanzar = null;
+
+// 1. Abrir el modal guardando el ID
+function abrirConfirmacionAvance(id) {
+    oportunidadIdParaAvanzar = id;
+
+    // Restaurar textos por si hubo un error antes
+    document.getElementById('iosModalTitle').textContent = "Avanzar Etapa";
+    document.getElementById('iosModalMessage').textContent = "¿Estás seguro de que deseas avanzar esta oportunidad a la siguiente etapa?";
+
+    // Mostrar botones normales
+    const btnConfirmar = document.getElementById('btnConfirmarAccion');
+    btnConfirmar.style.display = 'block';
+    btnConfirmar.textContent = "Avanzar";
+    btnConfirmar.onclick = ejecutarAvance; // Reasignar función
+
+    document.querySelector('.ios-btn-cancel').textContent = "Cancelar";
+
+    // Mostrar modal
+    const modal = document.getElementById('iosModal');
+    modal.classList.add('active');
+}
+
+// 2. Cerrar el modal
+function cerrarIosModal() {
+    document.getElementById('iosModal').classList.remove('active');
+    oportunidadIdParaAvanzar = null;
+}
+
+// 3. Ejecutar la llamada al servidor (POST)
+function ejecutarAvance() {
+    if (!oportunidadIdParaAvanzar) return;
+
+    // Feedback visual (opcional: cambiar texto a "Procesando...")
+    document.getElementById('btnConfirmarAccion').textContent = "...";
+
+    fetch(`/api/avanzar-etapa/${oportunidadIdParaAvanzar}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            // --- ÉXITO (200 OK) ---
+            // Recargar la página actual
+            window.location.reload();
+        } else {
+            // --- ERROR (4xx, 5xx) ---
+            throw new Error('Error en la solicitud');
+        }
+    })
+    .catch(error => {
+        mostrarErrorGlass("Hubo un problema al intentar avanzar la etapa. Intente nuevamente.");
+    });
+}
+
+// 4. Transformar el mismo modal en un mensaje de error
+function mostrarErrorGlass(mensaje) {
+    document.getElementById('iosModalTitle').textContent = "¡Error!";
+    document.getElementById('iosModalMessage').textContent = mensaje;
+
+    // Ocultar botón de confirmar, dejar solo "Cerrar"
+    const btnConfirmar = document.getElementById('btnConfirmarAccion');
+    btnConfirmar.style.display = 'none';
+
+    const btnCancelar = document.querySelector('.ios-btn-cancel');
+    btnCancelar.textContent = "Cerrar";
+    btnCancelar.classList.add('ios-btn-error'); // Poner texto en rojo
+    btnCancelar.style.borderRight = "none"; // Quitar linea divisoria
+    btnCancelar.style.width = "100%"; // Ocupar todo el ancho
+}
 
     </script>
 </body>

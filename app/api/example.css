@@ -1,0 +1,44 @@
+ec-size .ec-store .grid-product__label.grid-product__label--BLACKFRIDAY {
+    visibility: hidden;
+}
+.ec-size .ec-store .grid-product__label.grid-product__label--BLACKFRIDAY:before {
+    content: "";
+display: block;
+background-image: url(https://payments.netgate.com.uy/img/black_martika.png);
+background-size: contain;
+background-repeat: no-repeat;
+background-position: top;
+height: 100px;
+  visibility:visible;
+}
+#tile-products-C5aLgU .ins-component--product-list .ins-component__label.ins-component__label--ribbon{
+    visibility: hidden;
+}
+#tile-products-C5aLgU .ins-component--product-list .ins-component__label.ins-component__label--ribbon:before {
+    content: "";
+display: block;
+background-image: url(https://payments.netgate.com.uy/img/black_martika.png);
+background-size: contain;
+background-repeat: no-repeat;
+background-position: top;
+height: 100px;
+  visibility:visible;
+}
+.ec-size .ec-store .product-details__label--BLACKFRIDAY {
+    visibility: hidden;
+}
+.ec-size .ec-store .product-details__label--BLACKFRIDAY:before {
+    content: "";
+display: block;
+background-image: url(https://payments.netgate.com.uy/img/martika-black-0.png);
+background-size: contain;
+background-repeat: no-repeat;
+background-position: left;
+height: 30px;
+visibility:visible;
+}
+
+
+
+
+

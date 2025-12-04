@@ -1,11 +1,13 @@
 from flask import request, jsonify
 import base64, re
 from ..models.Contract import Contract
-from ..models.Product import ProductContract, ContractProductFieldValue, ProductFieldPrice, ProductFieldValue
+from ..models.Product import ProductContract, ContractProductFieldValue, ProductFieldPrice, ProductFieldValue, ProductField, Product
 from ..models.Equipo import Equipo, Marca, Modelo, Proveedor
 from ..models.Oportunidad import Oportunidad, EtapaOportunidad, TipoOportunidad, AccionOportunidad, EstadoOportunidad, ArchivoOportunidad
 from ..models.Cliente import Cliente, TipoID
 from ..models.SubPais import SubPais
+from ..models.Moneda import Moneda
+from ..models.Plazo import Plazo
 from ..models.Pais import Pais
 from ..models.Vendedor import Vendedor
 from ..models.FormaPago import FormaPago
@@ -17,6 +19,7 @@ from app import db
 from sqlalchemy import or_, func
 from datetime import datetime
 from urllib.parse import unquote
+import requests
 
 @api.route('/')
 def index():
@@ -253,7 +256,10 @@ def addoportunidad():
             estado.idetapaoportunidad = etapa.id
             estado.fechaalta = datetime.now()
             estado.nombre = etapa.nombre
+            estado.uri = etapa.uri
+            estado.notifica = etapa.notifica
             estado.descripcion = etapa.descripcion
+            estado.automatica = etapa.automatica
             db.session.add(estado)
             db.session.commit()
         return jsonify(
@@ -556,7 +562,7 @@ def subir_archivo():
     )
 
 
-def getOportunidad(oportunidad, contratos):
+def getOportunidad(oportunidad, contratos, cliente):
     # Convertimos oportunidad a dict
     oportunidad_json = {
         "id": oportunidad.id,
@@ -568,11 +574,71 @@ def getOportunidad(oportunidad, contratos):
         "fechafin": str(oportunidad.fechafin) if oportunidad.fechafin else None,
         "idcliente": oportunidad.idcliente,
         "responsable": oportunidad.responsable,
+        "idformapago": cliente.idFormaPago,
+        "idtipopago": cliente.idTipoPago
     }
+
+    cliente_json = {}
+    pais = Pais.query.filter_by(idPais = cliente.idPais).first()
+    subpais = SubPais.query.filter_by(idPais = cliente.idPais,idSubPais = cliente.idSubPais).first()
+    ciudad = Ciudad.query.filter_by(idPais = cliente.idPais,idSubPais = cliente.idSubPais,idCiudad = cliente.idCiudad).first()
+
+    cliente_json["id"] = cliente.idCliente
+    cliente_json["clinombre"] = cliente.cliNombre
+    cliente_json["cliapellido"] = cliente.cliApellido
+    cliente_json["clirazon"] = cliente.cliRazon
+    cliente_json["nroid"] = cliente.nroID
+    cliente_json["emailaviso"] = cliente.eMailAviso
+    cliente_json["telefono"] = cliente.Telefono
+    cliente_json["calle"] = cliente.Calle
+    cliente_json["nropuerta"] = cliente.nroPuerta
+    cliente_json["apto"] = cliente.Apto
+    cliente_json["departamento"] = subpais.nombre
+    cliente_json["ciudad"] = ciudad.nombre
+    cliente_json["pais"] = pais.nombre
+
+    #Obtenemos el tipo documento
+    tipodoc = TipoID.query.filter_by(idtipoid=cliente.idTipoID).first()
+    tipodoc_json = {}
+    tipodoc_json["idtipoid"] = tipodoc.idtipoid
+    tipodoc_json["descripcion"] = tipodoc.descripcion
+    tipodoc_json["idantel"] = tipodoc.idantel
+    tipodoc_json["idtipoidexterno"] = tipodoc.idtipoidexterno
+    tipodoc_json["tipocli"] = tipodoc.tipocli
+    tipodoc_json["visible"] = tipodoc.visible
+    cliente_json["tipodocumento"] = tipodoc_json
+
 
     # Convertimos contratos a una lista de dicts
     contratos_json = []
     for c in contratos:
+        productos_json = []
+        productos = (
+            db.session.query(ProductContract, Product)
+            .join(Product, Product.id == ProductContract.idproduct)
+            .filter(ProductContract.idcontract == c.id)
+            .all()
+        )
+        for p, tp in productos:
+            fields_json = []
+            fields = (
+                db.session.query(ContractProductFieldValue, ProductField)
+                .join(ProductField, ProductField.id == ContractProductFieldValue.idProductField)
+                .filter(ContractProductFieldValue.idContract == c.id)
+                .all()
+            )
+            for fc, f in fields:
+                if f.type == "COMBO":
+                    #Hay que buscar el field real
+                    pc = ProductFieldValue.query.filter_by(id = fc.value,idProduct = fc.idProduct, idField = fc.idProductField).first()
+                    if pc:
+                        fc.value = pc.value
+                fields_json.append({"id": f.id, "nombre": f.name, "value": fc.value})
+            moneda = Moneda.query.filter_by(idMoneda=p.idmoneda).first()
+            plazo = Plazo.query.filter_by(idPlazo=p.idperiodo).first()
+            productos_json.append({"id": p.id,"identificador": p.identificador, "producto": {"id": tp.id, "nombre": tp.name , "tipo": tp.type, "externalid": tp.externalid}, "moneda": {"id":moneda.idMoneda,"descripcion":moneda.descripcion,"idexterno":moneda.idExterno,"abreviacion":moneda.abreviacion}, "plazo": {"id":plazo.idPlazo,"descripcion":plazo.descripcion}, "importe":p.importe, "fields": fields_json})
+
+        v = Vendedor.query.filter_by(idVendedor = c.idvendedor).first()
         contratos_json.append({
             "id": c.id,
             "fechaalta": str(c.fechaalta),
@@ -589,9 +655,10 @@ def getOportunidad(oportunidad, contratos):
             "bajapor": c.bajapor,
             "sendmail": c.sendmail,
             "comercial": c.comercial,
-            "idvendedor": c.idvendedor,
+            "vendedor": {"id": v.idVendedor, "nombre": v.nombre, "email":v.email,"celular": v.celular},
             "contrato": c.contrato,
             "md5": c.md5,
+            "productos": productos_json,
             "fechasincronizado": str(c.fechasincronizado) if c.fechasincronizado else None,
         })
 
@@ -610,24 +677,49 @@ def getOportunidad(oportunidad, contratos):
     # archivos
     archivos = []
 
-    oportunidad_json["aciones"] = acciones
+    oportunidad_json["acciones"] = acciones
     oportunidad_json["archivos"] = archivos
     oportunidad_json["contratos"] = contratos_json
+    oportunidad_json["cliente"] = cliente_json
 
     # JSON final
-    return jsonify(oportunidad_json)
+    return oportunidad_json
 
 @api.route("/avanzar-etapa/<idoportunidad>", methods=["POST"])
 def avanzar_etapa(idoportunidad):
     #Obtengo la primer etapa sin realizar
     oportunidad = Oportunidad.query.filter_by(id=idoportunidad).first()
     contratos = Contract.query.filter_by(idoportunidad=idoportunidad).all()
+    cliente = Cliente.query.filter_by(idCliente=oportunidad.idcliente).first()
     etapa = EstadoOportunidad.query.filter_by(idoportunidad=idoportunidad,fecharealizado=None).order_by(EstadoOportunidad.id).first()
-    oportunidad = getOportunidad(oportunidad, contratos)
+    oportunidad = getOportunidad(oportunidad, contratos, cliente)
+
     if etapa.automatica is None:
         if etapa.notificar:
-            #hay que hacer un post a la uri que indica la etapa
-            oportunidad = getOportunidad(oportunidad, contratos)
-            return oportunidad
+            response = requests.post(
+                etapa.uri,
+                json=oportunidad,
+            )
 
-    return oportunidad
+            if not response.status_code == 200:
+                return jsonify(
+                    observation="Error al intentar avanzar la etapa.",
+                    error=False,
+                    serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+                ), 500
+
+    etapa.fecharealizado = strftime("%Y-%m-%d %H:%M:%S", gmtime())
+
+    try:
+        db.session.commit()
+        return jsonify(
+            observation="Etapa avanzada correctamente.",
+            error=False,
+            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        ), 200
+    except Exception as e:
+        return jsonify(
+            observation="Error al intentar avanzar la etapa.",
+            error=False,
+            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        ), 500

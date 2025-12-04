@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuevo Evento</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        /* --- 1. ESTILOS GLOBALES (Mismos de tu CRM) --- */
+        :root {
+            --sidebar-width: 260px;
+            --glass-bg-light: rgba(255, 255, 255, 0.8);
+            --glass-bg-dark: rgba(20, 37, 60, 0.85);
+            --primary-blue: #007bff;
+            --font-dark: #1e3a5f;
+            --shadow-soft: rgba(0, 0, 0, 0.15);
+            --glass-bg-form-input: rgba(255, 255, 255, 0.9);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #74a0e9 0%, #1f4788 100%);
+            display: flex;
+            min-height: 100vh;
+            color: var(--font-dark);
+        }
+
+        /* Sidebar & Layout */
+        .sidebar { width: var(--sidebar-width); background-color: var(--glass-bg-dark); color: white; height: 100vh; position: fixed; padding-top: 20px; backdrop-filter: blur(8px); border-right: 1px solid rgba(255,255,255,0.15); }
+        .content { margin-left: var(--sidebar-width); flex-grow: 1; padding: 30px; width: calc(100% - var(--sidebar-width)); }
+
+        /* Navbar simple */
+        .navbar { display: flex; justify-content: flex-end; padding: 15px 25px; margin-bottom: 20px; }
+        .user-info span { color: white; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+
+        /* Títulos */
+        h1 { color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.2); margin-bottom: 25px; font-size: 2em; display: flex; align-items: center; gap: 10px;}
+
+        /* --- 2. ESTILOS DEL FORMULARIO GLASS --- */
+
+        .glass-card {
+            background-color: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+            margin-bottom: 30px;
+        }
+
+        .glass-card h2 {
+            color: var(--primary-blue);
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            padding-bottom: 10px;
+            display: flex; align-items: center; gap: 10px;
+        }
+
+        /* Grid System */
+        .form-grid { display: grid; gap: 20px; }
+        .grid-2 { grid-template-columns: 1fr 1fr; }
+        .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+        @media (max-width: 800px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+        /* Inputs Estilizados */
+        .form-group { margin-bottom: 5px; }
+
+        .form-group label {
+            display: block; font-weight: 600; font-size: 0.9em; margin-bottom: 8px; color: #444;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 10px;
+            background-color: var(--glass-bg-form-input);
+            font-size: 1em;
+            color: #333;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.3);
+            background-color: #fff;
+        }
+
+        /* Botones de Acción (Pie de página) */
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 30px; border-radius: 10px; font-weight: 700; cursor: pointer; border: none; font-size: 1em; transition: all 0.2s;
+        }
+        .btn-cancel { background: rgba(255,255,255,0.5); color: #555; }
+        .btn-cancel:hover { background: rgba(255,255,255,0.8); }
+
+        .btn-save {
+            background: var(--primary-blue); color: white;
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
+        }
+        .btn-save:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 123, 255, 0.5); }
+
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div style="padding: 20px; text-align: center;">
+            <h3 style="color: white;">CRM Glass</h3>
+        </div>
+    </aside>
+
+    <main class="content">
+        <header class="navbar">
+            <div class="user-info"><span>Juan Miranda</span></div>
+        </header>
+        <h1><i class="bi bi-calendar-plus"></i> Agendar Nuevo Evento</h1>
+        <form id="formAgenda" action="/api/agenda/guardar" method="POST">
+            <div class="glass-card">
+                <h2><i class="bi bi-clock-history"></i> Fecha y Hora</h2>
+                <div class="form-grid grid-3">
+
+                    <div class="form-group">
+                        <label for="fecha">Fecha (*)</label>
+                        <input type="date" id="fecha" name="fecha" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="hora_inicio">Hora Inicio (*)</label>
+                        <input type="time" id="hora_inicio" name="hora_inicio" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="hora_fin">Hora Fin (Estimada)</label>
+                        <input type="time" id="hora_fin" name="hora_fin" class="form-control">
+                    </div>
+                </div>
+            </div>
+            <div class="glass-card">
+                <h2><i class="bi bi-person-workspace"></i> Detalles del Evento</h2>
+                <div class="form-grid grid-2">
+
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="titulo">Asunto / Título (*)</label>
+                        <input type="text" id="titulo" name="titulo" class="form-control" placeholder="Ej: Reunión inicial de proyecto..." required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cliente">Cliente</label>
+                        <select id="cliente" name="cliente_id" class="form-control">
+                            <option value="">-- Seleccione Cliente (Opcional) --</option>
+                            {% for cli in clientes %}
+                                <option value="{{ cli.id }}">{{ cli.nombre }} {{ cli.apellido }} ({{ cli.empresa }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tipo_visita">Tipo de Actividad</label>
+                        <select id="tipo_visita" name="tipo_visita" class="form-control">
+                            <option value="reunion">Reunión Presencial</option>
+                            <option value="llamada">Llamada / Videollamada</option>
+                            <option value="instalacion">Instalación Técnica</option>
+                            <option value="firma">Firma de Contrato</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="direccion">Ubicación / Dirección</label>
+                        <div style="position: relative;">
+                            <input type="text" id="direccion" name="direccion" class="form-control" placeholder="Dirección física o enlace de reunión">
+                            <i class="bi bi-geo-alt" style="position: absolute; right: 15px; top: 12px; color: #999;"></i>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <h2><i class="bi bi-journal-text"></i> Notas</h2>
+                <div class="form-group">
+                    <textarea name="notas" id="notas" rows="4" class="form-control" placeholder="Detalles importantes, instrucciones de entrada, etc..."></textarea>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-cancel" onclick="window.history.back()">Cancelar</button>
+                <button type="submit" class="btn btn-save"><i class="bi bi-check-lg"></i> Guardar Evento</button>
+            </div>
+
+        </form>
+    </main>
+
+    <script>
+        // --- PRE-CARGA INTELIGENTE ---
+        // Este script lee la URL para ver si venimos "pre-cargados" desde otra sección
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+
+            // 1. Si venimos de la Agenda (click en "Crear en día X")
+            const fechaParam = urlParams.get('fecha');
+            if (fechaParam) {
+                document.getElementById('fecha').value = fechaParam;
+            } else {
+                // Sino, poner fecha de hoy por defecto
+                document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
+            }
+
+            // 2. Si venimos del perfil de Cliente (click en "Agendar visita")
+            const clienteParam = urlParams.get('cliente_id');
+            if (clienteParam) {
+                const selectCliente = document.getElementById('cliente');
+                selectCliente.value = clienteParam;
+
+                // Si el cliente tiene dirección guardada, podrías cargarla aquí vía fetch
+                // fetch('/api/cliente/' + clienteParam).then(...)
+            }
+
+            // Hora por defecto (próxima hora redonda)
+            const now = new Date();
+            now.setMinutes(0);
+            now.setHours(now.getHours() + 1);
+            const horaString = now.toTimeString().slice(0,5); // HH:MM
+            document.getElementById('hora_inicio').value = horaString;
+        });
+    </script>
+
+</body>
+</html>

@@ -35,6 +35,9 @@ def create_app(config_name="development"):
     from .clients import clients as admin_blueprint
     app.register_blueprint(admin_blueprint, url_prefix='/clients')
 
+    from .netgate import netgate as netgate_blueprint
+    app.register_blueprint(netgate_blueprint, url_prefix='/netgate')
+
     from .api import api as api_blueprint
     app.register_blueprint(api_blueprint, url_prefix='/api')
 
@@ -43,5 +46,7 @@ def create_app(config_name="development"):
 
     from .auth import auth as auth_blueprint
     app.register_blueprint(auth_blueprint)
+
+
 
     return app

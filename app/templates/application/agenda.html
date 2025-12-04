@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda de eventos</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        /* --- 1. VARIABLES Y CONFIGURACIÓN GLOBAL --- */
+        :root {
+            --sidebar-width: 260px;
+            --sidebar-closed-width: 80px;
+            --glass-bg-light: rgba(255, 255, 255, 0.8);
+            --glass-bg-dark: rgba(20, 37, 60, 0.85);
+            --primary-blue: #007bff;
+            --font-dark: #1e3a5f;
+            --font-light: #ffffff;
+            --shadow-soft: rgba(0, 0, 0, 0.15);
+            --transition-speed: 0.3s;
+
+            /* Colores de Estado de Agenda */
+            --status-pending: #ffc107;  /* Amarillo */
+            --status-confirmed: #007bff; /* Azul */
+            --status-completed: #28a745; /* Verde */
+            --status-cancelled: #dc3545; /* Rojo */
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #74a0e9 0%, #1f4788 100%);
+            display: flex;
+            min-height: 100vh;
+            color: var(--font-dark);
+            overflow-x: hidden; /* Evitar scroll horizontal */
+        }
+
+        /* --- 2. LAYOUT PRINCIPAL (Sidebar & Content) --- */
+        .sidebar { width: var(--sidebar-width); background-color: var(--glass-bg-dark); color: white; height: 100vh; position: fixed; overflow-x: hidden; padding-top: 20px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-right: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 2px 0 15px rgba(0, 0, 0, 0.3); z-index: 100; transition: width var(--transition-speed) ease; display: flex; flex-direction: column; }
+        .sidebar.closed { width: var(--sidebar-closed-width); }
+
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; padding: 0 20px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); margin-bottom: 15px; width: var(--sidebar-width); padding-right: 15px; transition: width var(--transition-speed) ease; }
+        .sidebar.closed .sidebar-header { width: var(--sidebar-closed-width); justify-content: center; padding: 0 0 20px 0; }
+        .sidebar.closed .logo-container { display: none; }
+
+        .logo-container { background-color: rgba(255,255,255,0.2); border-radius: 8px; padding: 5px; display: flex; align-items: center; justify-content: center; }
+        .logo-container img { max-height: 30px; width: auto; }
+
+        .toggle-btn { background: none; color: white; border: 1px solid rgba(255, 255, 255, 0.4); padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 1.2em; display: flex; align-items: center; justify-content: center; transition: transform var(--transition-speed) ease; }
+
+        .menu ul { list-style: none; }
+        .menu li a { display: flex; align-items: center; padding: 12px 15px; text-decoration: none; color: #dbe4f1; border-radius: 8px; margin: 5px 10px; line-height: 1.2; transition: all 0.2s; }
+        .menu li a:hover { background-color: rgba(255,255,255,0.1); }
+        .menu li a .bi { font-size: 1.3em; margin-right: 15px; width: 25px; text-align: center; line-height: 0; }
+        .sidebar.closed .menu li a span { display: none; }
+        .sidebar.closed .menu li a { justify-content: center; padding: 12px 0; margin: 5px 15px; }
+        .menu li a.active { background-color: var(--primary-blue); box-shadow: 0 2px 8px rgba(0, 123, 255, 0.5); color: white; }
+
+        .content { margin-left: var(--sidebar-width); flex-grow: 1; padding: 25px 30px; width: calc(100% - var(--sidebar-width)); transition: margin-left var(--transition-speed) ease, width var(--transition-speed) ease; }
+        .content.shifted { margin-left: var(--sidebar-closed-width); width: calc(100% - var(--sidebar-closed-width)); }
+
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; border-radius: 12px; background-color: var(--glass-bg-light); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 4px 30px var(--shadow-soft); margin-bottom: 30px; }
+        .navbar input[type="text"] { padding: 10px 15px; width: 350px; background-color: rgba(255, 255, 255, 1); border: none; border-radius: 20px; font-size: 0.9em; color: var(--font-dark); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); }
+        .user-info span { color: var(--font-dark); font-weight: 600; }
+
+        .action-button { padding: 10px 20px; border: none; border-radius: 8px; font-size: 1em; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-add { background-color: #28a745; color: white; box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3); }
+        .btn-add:hover { background-color: #1e7e34; transform: translateY(-1px); }
+
+        h1 { color: var(--font-light); text-shadow: 0 1px 2px var(--shadow-soft); margin-bottom: 0; font-size: 1.8em; }
+
+        /* --- 3. ESTILOS ESPECÍFICOS: AGENDA 3 DÍAS --- */
+
+        /* Barra de control de fecha (Sticky) */
+        .date-control-bar {
+            position: sticky;
+            top: 10px;
+            z-index: 50;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 12px 20px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+        }
+
+        .date-display {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: var(--font-dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,0.4);
+            padding: 5px 15px;
+            border-radius: 12px;
+        }
+
+        .custom-date-input {
+            background: transparent; border: none; font-family: inherit; font-size: 1em; font-weight: 700; color: var(--primary-blue); cursor: pointer; outline: none;
+        }
+
+        .btn-nav-date {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            width: 40px; height: 40px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s; color: var(--font-dark); font-size: 1.1em;
+        }
+        .btn-nav-date:hover { background: var(--primary-blue); color: white; transform: scale(1.1); }
+
+        /* GRILLA DE 3 DÍAS */
+        .agenda-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* 3 columnas */
+            gap: 20px;
+            padding-bottom: 50px;
+        }
+
+        /* Columna de Día */
+        .day-column { display: flex; flex-direction: column; gap: 15px; }
+
+        /* Header de la Columna */
+        .day-header {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s;
+        }
+        .day-name { display: block; font-size: 0.85em; text-transform: uppercase; letter-spacing: 1px; color: #555; font-weight: 700; margin-bottom: 5px; }
+        .day-date { display: block; font-size: 1.5em; font-weight: 800; color: var(--font-dark); }
+
+        /* Resaltar "HOY" */
+        .day-column.is-today .day-header {
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid var(--primary-blue);
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        .day-column.is-today .day-name { color: var(--primary-blue); }
+
+        /* TARJETAS DE EVENTOS (Estilo compacto para columnas) */
+        .event-card {
+            background-color: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 14px;
+            padding: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+            position: relative;
+            transition: all 0.2s ease;
+            border-left: 5px solid #ccc;
+            font-size: 0.95em;
+        }
+        .event-card:hover {
+            transform: translateY(-3px);
+            background-color: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            z-index: 5;
+        }
+
+        /* Colores de estado */
+        .status-confirmed { border-left-color: var(--status-confirmed); }
+        .status-completed { border-left-color: var(--status-completed); opacity: 0.8; }
+        .status-pending { border-left-color: var(--status-pending); }
+        .status-cancelled { border-left-color: var(--status-cancelled); opacity: 0.7; }
+
+        .time-badge {
+            display: inline-block;
+            background: rgba(0,0,0,0.05);
+            padding: 3px 8px; border-radius: 6px;
+            font-weight: 700; font-size: 0.85em; color: #555;
+            margin-bottom: 8px;
+        }
+
+        .event-title { font-weight: 700; color: #333; font-size: 1.05em; display: block; margin-bottom: 8px; line-height: 1.3;}
+        .event-details { font-size: 0.9em; color: #666; margin-bottom: 8px; }
+        .event-row { display: flex; align-items: flex-start; margin-bottom: 4px; gap: 6px; }
+        .event-row i { color: var(--primary-blue); margin-top: 3px; font-size: 0.9em; }
+
+        .event-badge {
+            display: inline-block; font-size: 0.7em; padding: 2px 8px; border-radius: 12px; font-weight: 700; text-transform: uppercase;
+        }
+        .badge-blue { background: rgba(0, 123, 255, 0.15); color: var(--status-confirmed); }
+        .badge-green { background: rgba(40, 167, 69, 0.15); color: var(--status-completed); }
+        .badge-orange { background: rgba(255, 193, 7, 0.2); color: #d39e00; }
+
+        .event-actions {
+            margin-top: 12px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.06);
+            display: flex; justify-content: flex-end; gap: 5px;
+        }
+        .btn-icon-sm {
+            width: 30px; height: 30px; border-radius: 8px; border: none; background: rgba(255,255,255,0.8);
+            color: #555; cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .btn-icon-sm:hover { background: var(--primary-blue); color: white; }
+
+        /* Empty State */
+        .empty-slot {
+            text-align: center; padding: 30px 10px; color: rgba(255,255,255,0.6);
+            border: 1px dashed rgba(255,255,255,0.3); border-radius: 12px;
+        }
+
+        /* Responsive Móvil */
+        @media (max-width: 900px) {
+            .agenda-grid { grid-template-columns: 1fr; } /* 1 columna */
+            .day-column { margin-bottom: 30px; }
+        }
+    </style>
+</head>
+<body>
+
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-container">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/PlaceholderLC.svg/1024px-PlaceholderLC.svg.png" alt="CRM Logo">
+            </div>
+            <button id="toggleBtn" class="toggle-btn" title="Plegar/Desplegar Menú">&#9776;</button>
+        </div>
+        <nav class="menu">
+            <ul>
+                <li><a href="#"><i class="bi bi-speedometer2"></i> <span>Dashboard</span></a></li>
+                <li><a href="#"><i class="bi bi-people"></i> <span>Clientes</span></a></li>
+                <li><a href="#"><i class="bi bi-file-earmark-text"></i> <span>Contratos</span></a></li>
+                <li><a href="#"><i class="bi bi-bag-check"></i> <span>Oportunidades</span></a></li>
+                <li class="active"><a href="#" class="active"><i class="bi bi-calendar-check"></i> <span>Tareas y Agenda</span></a></li>
+                <li><a href="#"><i class="bi bi-graph-up-arrow"></i> <span>Reportes</span></a></li>
+                <hr style="margin: 15px 20px; border-color: rgba(255, 255, 255, 0.2);">
+                <li><a href="#"><i class="bi bi-gear"></i> <span>Configuración</span></a></li>
+                <li><a href="#"><i class="bi bi-box-arrow-right"></i> <span>Cerrar Sesión</span></a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <main id="content" class="content">
+
+        <header class="navbar">
+            <input type="text" placeholder="Buscar visita, cliente o dirección...">
+            <div class="user-info">
+                <span>Hola, Juan Miranda</span>
+            </div>
+        </header>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+            <h1><i class="bi bi-calendar-week"></i> Agenda</h1>
+            <button class="action-button btn-add" onclick="alert('Aquí se abre el modal para crear visita')">
+                <i class="bi bi-plus-lg"></i> Agendar evento
+            </button>
+        </div>
+
+        <div class="date-control-bar">
+            <button class="btn-nav-date" onclick="cambiarFecha(-1)"><i class="bi bi-chevron-left"></i></button>
+
+            <div class="date-display">
+                <i class="bi bi-calendar-range" style="color: #666;"></i>
+                <span style="font-size: 0.9em; margin-right: 5px; color:#888;">Inicio:</span>
+                <input type="date" id="fechaAgenda" class="custom-date-input" onchange="cargarAgenda3Dias()">
+            </div>
+
+            <button class="btn-nav-date" onclick="cambiarFecha(1)"><i class="bi bi-chevron-right"></i></button>
+        </div>
+
+        <div id="agenda-container" class="agenda-grid">
+            <div class="empty-slot" style="grid-column: 1 / -1;">
+                <p>Cargando agenda...</p>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Inicializar Sidebar
+            const toggleBtn = document.getElementById('toggleBtn');
+            const sidebar = document.getElementById('sidebar');
+            const content = document.getElementById('content');
+            if(toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    sidebar.classList.toggle('closed');
+                    content.classList.toggle('shifted');
+                });
+            }
+
+            // Inicializar Fecha HOY
+            const hoy = new Date().toISOString().split('T')[0];
+            document.getElementById('fechaAgenda').value = hoy;
+
+            // Cargar Agenda
+            cargarAgenda3Dias();
+        });
+
+        function cambiarFecha(dias) {
+            const input = document.getElementById('fechaAgenda');
+            const fechaObj = new Date(input.value + 'T00:00:00');
+            fechaObj.setDate(fechaObj.getDate() + dias);
+            input.value = fechaObj.toISOString().split('T')[0];
+            cargarAgenda3Dias();
+        }
+
+        // --- RENDERIZADO DE 3 DÍAS ---
+        function cargarAgenda3Dias() {
+            const container = document.getElementById('agenda-container');
+            const fechaInicioInput = document.getElementById('fechaAgenda').value;
+
+            container.innerHTML = ''; // Limpiar
+
+            // Generar 3 columnas (Día 0, Día 1, Día 2)
+            for (let i = 0; i < 3; i++) {
+                // Calcular fecha de la columna actual
+                const fechaColumna = new Date(fechaInicioInput + 'T00:00:00');
+                fechaColumna.setDate(fechaColumna.getDate() + i);
+
+                // Formatos
+                const opcionesDia = { weekday: 'long' };
+                const diaSemana = fechaColumna.toLocaleDateString('es-ES', opcionesDia);
+                const diaNumero = fechaColumna.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+                const fechaISO = fechaColumna.toISOString().split('T')[0];
+
+                // ¿Es Hoy?
+                const hoyReal = new Date().toISOString().split('T')[0];
+                const esHoy = (fechaISO === hoyReal);
+
+                const claseHoy = esHoy ? 'is-today' : '';
+                const textoDia = esHoy ? 'HOY' : diaSemana;
+
+                // Obtener eventos (MOCK)
+                const eventosDelDia = obtenerEventosMock(fechaISO);
+
+                // Construir HTML de eventos
+                let eventosHTML = '';
+
+                if (eventosDelDia.length > 0) {
+                    eventosDelDia.forEach(ev => {
+                        let badgeClass = 'badge-orange';
+                        if (ev.estado === 'confirmed') badgeClass = 'badge-blue';
+                        if (ev.estado === 'completed') badgeClass = 'badge-green';
+
+                        eventosHTML += `
+                            <div class="event-card status-${ev.estado}" style="margin-bottom: 15px;">
+                                <div class="time-badge"><i class="bi bi-clock"></i> ${ev.hora} - ${ev.fin}</div>
+
+                                <span class="event-title">${ev.titulo}</span>
+
+                                <div class="event-details">
+                                    <div class="event-row"><i class="bi bi-person-fill"></i> <b>${ev.cliente}</b></div>
+                                    <div class="event-row"><i class="bi bi-geo-alt-fill"></i> ${ev.direccion}</div>
+                                </div>
+
+                                <div style="margin-top:8px;">
+                                    <span class="event-badge ${badgeClass}">${ev.estadoTexto}</span>
+                                </div>
+
+                                <div class="event-actions">
+                                    <button class="btn-icon-sm" title="Ver Cliente"><i class="bi bi-eye"></i></button>
+                                    <button class="btn-icon-sm" title="Editar"><i class="bi bi-pencil"></i></button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    eventosHTML = `
+                        <div class="empty-slot">
+                            <i class="bi bi-calendar2-minus" style="font-size: 2em; margin-bottom:5px;"></i>
+                            <p style="font-size:0.9em; margin:0;">Sin visitas</p>
+                        </div>
+                    `;
+                }
+
+                // Armar la columna completa
+                const colHTML = `
+                    <div class="day-column ${claseHoy}">
+                        <div class="day-header">
+                            <span class="day-name">${textoDia}</span>
+                            <span class="day-date">${diaNumero}</span>
+                        </div>
+                        <div class="day-events">
+                            ${eventosHTML}
+                        </div>
+                    </div>
+                `;
+
+                container.innerHTML += colHTML;
+            }
+        }
+
+        // --- MOCK DATA (Simulando Flask) ---
+        function obtenerEventosMock(fechaISO) {
+            const diaSemanaNum = new Date(fechaISO + 'T00:00:00').getDay();
+
+            // Simular datos fijos
+            // Si la fecha coincide con HOY (del sistema)
+            const hoyReal = new Date().toISOString().split('T')[0];
+
+            if (fechaISO === hoyReal) {
+                return [
+                    { hora: '09:00', fin: '10:00', titulo: 'Reunión Sancor', cliente: 'Sancor Seguros', direccion: 'Centro', estado: 'completed', estadoTexto: 'Realizada' },
+                    { hora: '15:00', fin: '16:00', titulo: 'Visita Técnica', cliente: 'Conaprole', direccion: 'Planta 1', estado: 'pending', estadoTexto: 'Pendiente' }
+                ];
+            }
+            // Si es un día par (ej: martes, jueves, sabado)
+            else if (diaSemanaNum % 2 === 0) {
+                return [
+                    { hora: '11:00', fin: '12:00', titulo: 'Firma Contrato', cliente: 'Juan Pérez', direccion: 'Oficina', estado: 'confirmed', estadoTexto: 'Confirmada' }
+                ];
+            }
+            // Días impares vacíos
+            return [];
+        }
+    </script>
+</body>
+</html>

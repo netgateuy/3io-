@@ -4,8 +4,10 @@ from ..models.Pais import Pais
 from ..models.SubPais import SubPais
 from ..models.TipoPago import TipoPago
 from ..models.Cliente import TipoID, Cliente
+from ..models.Moneda import Moneda
 from ..models.Vendedor import Vendedor
 from ..models.User import User
+from ..models.Agenda import Agenda, TipoAgenda
 from ..models.Oportunidad import TipoOportunidad, Oportunidad, EstadoOportunidad, TipoAccion, AccionOportunidad, ArchivoOportunidad, TipoArchivo
 from . import application
 from app import db
@@ -59,6 +61,15 @@ def oportunidades():
     except Exception as e:
         return str(e)
 
+@application.route('/agenda')
+def agenda():
+    return render_template('/application/agenda.html')
+
+@application.route('/agendar')
+def agendar():
+    tipoagenda = TipoAgenda.query.filter_by(visible=1).all()
+    return render_template('/application/agendar.html',tipoagenda=tipoagenda)
+
 @application.route('/oportunidad/<id>')
 def oportunidad(id):
     try:
@@ -74,11 +85,13 @@ def oportunidad(id):
         archivos = (
             db.session.query(ArchivoOportunidad, TipoArchivo)
             .join(TipoArchivo, ArchivoOportunidad.idtipoarchivo == TipoArchivo.id)
+            .filter(ArchivoOportunidad.idoportunidad == id)
             .all()
         )
         for c in contratos:
-            c.productos = (db.session.query(ProductContract, Product)
+            c.productos = (db.session.query(ProductContract, Product, Moneda)
                 .join(Product, ProductContract.idproduct == Product.id)
+                .join(Moneda, ProductContract.idmoneda == Moneda.idMoneda)
                 .filter(ProductContract.idcontract == c.id)
                 .all())
 

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notificación de Pago - Contratos Adjuntos</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; 
+    /* Fondo con ligero color o degradado para simular el efecto de vidrio flotante */
+    background-color: #e3f2fd;
+    background-image: linear-gradient(135deg, #e3f2fd 0%, #c8e6fc 100%);">
+
+    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+            <td align="center" style="padding: 40px 0;">
+                <table width="600" border="0" cellspacing="0" cellpadding="0" 
+                    style="background-color: rgba(255, 255, 255, 0.9); /* Transparencia simulada */ 
+                        border-radius: 20px; 
+                        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1); 
+                        border: 1px solid rgba(255, 255, 255, 0.5); /* Borde claro */
+                        overflow: hidden;">
+                    
+                    <tr>
+                        <td align="center" style="padding: 30px 30px 20px;">
+                            <img src="https://netgate.com.uy/wp-content/uploads/2023/02/logo-netgate-agente-de-antel-sin-margen-2048x470.png" alt="Logo de la Empresa" width="280" style="display: block; border: 0; max-width: 280px; height: auto;">
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="background-color: #007BFF; color: #ffffff; padding: 35px 30px; text-align: center; 
+                            background-image: linear-gradient(135deg, #007BFF 0%, #0056b3 100%); /* Nuevo Degradado Azul Más Profundo */
+                            border-bottom: 1px solid rgba(255, 255, 255, 0.3);">
+                            <h1 style="margin: 0; font-size: 28px; font-weight: 600;">Nueva orden de compra</h1>
+                            <p style="margin: 10px 0 0; font-size: 18px; opacity: 0.9;">#{{content.id}}-2025</p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 30px;">
+                            <p style="font-size: 17px; color: #333333; line-height: 1.6;">Hola, gracias por confiar en nuestros servicios, a continuación podrás ver el detalle de tu contratación.</p>
+                            <p style="font-size: 17px; color: #333333; line-height: 1.6; margin-top: 25px;">Tu pago está pendiente por el monto total desglosado más abajo. Puedes elegir la forma de pago que desees siguiendo las instrucciones detalladas.</p>
+                            <h2 style="color: #007BFF; font-size: 22px; margin-top: 35px; border-bottom: 1px solid #eeeeee; padding-bottom: 10px;">Detalle de servicios a contratar</h2>
+                            <table width="100%" border="0" cellspacing="0" cellpadding="10" style="border-collapse: collapse; margin-top: 15px; background-color: rgba(245, 245, 245, 0.7); border-radius: 10px;">
+                                <thead style="background-color: rgba(230, 230, 230, 0.5);">
+                                    <tr>
+                                        <th style="text-align: left; font-size: 15px; padding: 12px; color: #333;">Servicio</th>
+                                        <th style="text-align: left; font-size: 15px; padding: 12px; color: #333;">Nombre</th>
+                                        <th style="text-align: left; font-size: 15px; padding: 12px; color: #333;">Moneda</th>
+                                        <th style="text-align: right; font-size: 15px; padding: 12px; color: #333;">Importe (IVA inc.)</th>
+                                        <th style="text-align: right; font-size: 15px; padding: 12px; color: #333;">Plazo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for contrato in content.contratos %}
+                                        {% for p in contrato.productos %}
+                                        <tr style="border-bottom: 1px solid #e0e0e0;">
+                                            <td style="font-size: 16px; padding: 12px; color: #555;">{{p.producto.nombre}}</td>
+                                            <td style="font-size: 16px; padding: 12px; text-align: right; color: #555;">{{p.identificador}}</td>
+                                            <td style="font-size: 16px; padding: 12px; text-align: right; color: #555;">{{p.moneda.descripcion}}</td>
+                                            <td style="font-size: 16px; padding: 12px; text-align: right; color: #555;">{{(p.importe * 1.22) | round(2) }}</td>
+                                            <td style="font-size: 16px; padding: 12px; text-align: right; color: #555;">{{p.plazo.descripcion}}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% endfor %}
+                                    {% if total_pesos and total_pesos > 0 %}
+                                    <tr>
+                                        <td style="border-top: 1px solid #cccccc;"></td>
+                                        <td style="font-size: 16px; padding: 15px 12px; text-align: right; font-weight: bold; color: #007BFF; border-top: 1px solid #cccccc;">
+                                        </td>
+                                        <td colspan="3" style="font-size: 16px; padding: 15px 12px; font-weight: bold; color: #333; text-align: right; border-top: 1px solid #cccccc;">
+                                           TOTAL $ {{ (total_pesos * 1.22) | round(2) }}
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                    {% if total_dolares and total_dolares > 0 %}
+                                    <tr>
+                                        <td style="border-top: 1px solid #cccccc;"></td>
+                                        <td style="font-size: 16px; padding: 15px 12px; text-align: right; font-weight: bold; color: #007BFF; border-top: 1px solid #cccccc;">
+                                        </td>
+                                        <td colspan="3" style="font-size: 16px; padding: 15px 12px; font-weight: bold; color: #333; text-align: right; border-top: 1px solid #cccccc;">
+                                            TOTAL USD {{  (total_dolares * 1.22) | round(2) }}
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                            
+                            <h2 style="color: #007BFF; font-size: 22px; margin-top: 35px; border-bottom: 1px solid #eeeeee; padding-bottom: 10px;">Opciones de Pago</h2>
+                            {% if cliente_bamboo %}
+                            <h3 style="color: #333333; margin-top: 25px; font-size: 18px;">Pagar con Bamboo Payments</h3>
+                            
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                <tr>
+                                    <td align="center" style="padding: 15px 0 20px;">
+                                        <a href="{{cliente_bamboo.linkBamboo}}" style="background-color: #28a745; color: #ffffff; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 17px; display: inline-block; box-shadow: 0 5px 20px rgba(40, 167, 69, 0.4);">Asociar método de pago</a>
+                                    </td>
+                                </tr>
+                            </table>
+                            {% endif %}
+                            <h3 style="color: #333333; margin-top: 25px; font-size: 18px;">Transferencia Bancaria</h3>
+                            
+                            <table width="100%" border="0" cellspacing="0" cellpadding="10" style="border-collapse: collapse; margin-top: 15px; background-color: rgba(255, 255, 255, 0.7); border: 1px solid #dddddd; border-radius: 10px;">
+                                <thead style="background-color: #f5f5f5;">
+                                    <tr>
+                                        <th style="text-align: left; font-size: 14px; padding: 12px;">Banco</th>
+                                        <th style="text-align: left; font-size: 14px; padding: 12px;">N° de Cuenta</th>
+                                        <th style="text-align: left; font-size: 14px; padding: 12px;">Titular</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr style="border-bottom: 1px solid #eeeeee;">
+                                        <td style="font-size: 15px; padding: 12px; font-weight: bold;">Santander</td>
+                                        <td style="font-size: 15px; padding: 12px;">Pesos y dólares, Cuenta Corriente N° 1081993 (sucursal 81)</td>
+                                        <td style="font-size: 15px; padding: 12px;">Comintur S.A</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-size: 15px; padding: 12px; font-weight: bold;">Itaú</td>
+                                        <td style="font-size: 15px; padding: 12px;">Dólares, Cuenta Corriente N° 1051844  – Pesos, Cuenta Corriente N° 4023042</td>
+                                        <td style="font-size: 15px; padding: 12px;">Comintur S.A</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-size: 15px; padding: 12px; font-weight: bold;">BROU</td>
+                                        <td style="font-size: 15px; padding: 12px;">– Dólares, Cuenta Corriente Nº 1556153-00004  – Pesos, Cuenta Corriente Nº 1556153-00006</td>
+                                        <td style="font-size: 15px; padding: 12px;">Comintur S.A</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <p style="font-size: 15px; color: #cc0000; margin-top: 20px;">**IMPORTANTE:** Envía el comprobante de pago respondiendo a este correo &oacute; a pagos@netgate.com.uy.</p>
+                            
+                            <p style="font-size: 17px; color: #333333; margin-top: 40px; line-height: 1.6;">Por cualquier consulta no dudes en contactarnos, estamos disponibles para cualquier consulta.</p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="background-color: rgba(248, 251, 253, 0.8); padding: 30px; text-align: center; border-top: 1px solid #eeeeee; border-radius: 0 0 20px 20px;">
+                            <p style="margin: 8px 0 0; font-size: 17px; font-weight: 600; color: #333333;">Netgate</p>
+                            <p style="margin: 5px 0 0; font-size: 13px; color: #666666;">2712 66 66 / netgate.com.uy</p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>

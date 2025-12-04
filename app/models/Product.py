@@ -6,6 +6,7 @@ from sqlalchemy import ForeignKeyConstraint
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(32), unique=False)
+    externalid = db.Column(db.String(32), unique=False)
     description = db.Column(db.String(256), unique=False)
     type = db.Column(db.String(256), unique=False)
     visible = db.Column(BIT(1))
@@ -17,6 +18,7 @@ class ProductField(db.Model):
     description = db.Column(db.String(256), unique=False)
     type = db.Column(db.String(256), unique=False)
     visible = db.Column(BIT(1))
+    identifier = db.Column(BIT(1))
     pricefilter = db.Column(BIT(1))
     filterby = db.Column(db.Integer)
     regex = db.Column(db.Text, unique=False)
@@ -70,7 +72,7 @@ class ProductContract(db.Model):
     idmoneda = db.Column(db.Integer)
     idperiodo = db.Column(db.Integer)
     importe = db.Column(db.Double)
-
+    identificador = db.Column(db.Text, unique=False)
     __table_args__ = (
         ForeignKeyConstraint(
             ['idcontract'], ['contract.id']
