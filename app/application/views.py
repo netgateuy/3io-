@@ -11,7 +11,7 @@ from ..models.Agenda import Agenda, TipoAgenda
 from ..models.Oportunidad import TipoOportunidad, Oportunidad, EstadoOportunidad, TipoAccion, AccionOportunidad, ArchivoOportunidad, TipoArchivo
 from . import application
 from app import db
-from flask import render_template, abort, Response
+from flask import render_template, abort, Response, request
 import mimetypes
 
 @application.route('/')
@@ -67,8 +67,25 @@ def agenda():
 
 @application.route('/agendar')
 def agendar():
+    id_cliente = request.args.get('idcliente', default=None, type=int)
+    id_oportunidad = request.args.get('idoportunidad', default=None, type=int)
+    oportunidad = None
+    cliente = None
+    if id_oportunidad:
+        #Obtenemos la oportunidad
+        oportunidad = Oportunidad.query.filter_by(id=id_oportunidad).first()
+
+        cliente = Cliente.query.filter_by(idCliente=oportunidad.idcliente).first()
+    else:
+        cliente = Cliente.query.filter_by(idCliente=id_cliente).first()
+
     tipoagenda = TipoAgenda.query.filter_by(visible=1).all()
-    return render_template('/application/agendar.html',tipoagenda=tipoagenda)
+    return render_template('/application/agendar.html',tipoagenda=tipoagenda, oportunidad=oportunidad, cliente=cliente, id_oportunidad=id_oportunidad)
+
+@application.route('/equipos')
+def equipos():
+    return render_template('/application/equipos.html')
+
 
 @application.route('/oportunidad/<id>')
 def oportunidad(id):

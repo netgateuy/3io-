@@ -221,7 +221,6 @@
     </style>
 </head>
 <body>
-
     <aside id="sidebar" class="sidebar">
         <div class="sidebar-header">
             <div class="logo-container">
@@ -243,22 +242,20 @@
             </ul>
         </nav>
     </aside>
-
     <main id="content" class="content">
-
         <header class="navbar">
             <input type="text" placeholder="Buscar visita, cliente o dirección...">
             <div class="user-info">
                 <span>Hola, Juan Miranda</span>
             </div>
         </header>
-
+        <!--
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
             <h1><i class="bi bi-calendar-week"></i> Agenda</h1>
-            <button class="action-button btn-add" onclick="alert('Aquí se abre el modal para crear visita')">
-                <i class="bi bi-plus-lg"></i> Agendar evento
+            <button class="action-button btn-add" onclick="agendar()">
+                <i class="bi bi-plus-lg"></i> Agendar
             </button>
-        </div>
+        </div>-->
 
         <div class="date-control-bar">
             <button class="btn-nav-date" onclick="cambiarFecha(-1)"><i class="bi bi-chevron-left"></i></button>
@@ -310,7 +307,7 @@
         }
 
         // --- RENDERIZADO DE 3 DÍAS ---
-        function cargarAgenda3Dias() {
+       async function cargarAgenda3Dias() {
             const container = document.getElementById('agenda-container');
             const fechaInicioInput = document.getElementById('fechaAgenda').value;
 
@@ -336,32 +333,27 @@
                 const textoDia = esHoy ? 'HOY' : diaSemana;
 
                 // Obtener eventos (MOCK)
-                const eventosDelDia = obtenerEventosMock(fechaISO);
+                const eventosDelDia = await obtenerEventos(fechaISO);
 
                 // Construir HTML de eventos
                 let eventosHTML = '';
 
-                if (eventosDelDia.length > 0) {
-                    eventosDelDia.forEach(ev => {
+                if (eventosDelDia.data.length > 0) {
+                    eventosDelDia.data.forEach(ev => {
                         let badgeClass = 'badge-orange';
                         if (ev.estado === 'confirmed') badgeClass = 'badge-blue';
                         if (ev.estado === 'completed') badgeClass = 'badge-green';
-
                         eventosHTML += `
                             <div class="event-card status-${ev.estado}" style="margin-bottom: 15px;">
-                                <div class="time-badge"><i class="bi bi-clock"></i> ${ev.hora} - ${ev.fin}</div>
-
-                                <span class="event-title">${ev.titulo}</span>
-
+                                <div class="time-badge"><i class="bi bi-clock"></i> ${ev.hora_inicio} ${ev.hora_fin ? ` - ${ev.hora_fin}` : ''}</div>
+                                <span class="event-title">${ev.descripcion}</span>
                                 <div class="event-details">
-                                    <div class="event-row"><i class="bi bi-person-fill"></i> <b>${ev.cliente}</b></div>
+                                    <div class="event-row"><i class="bi bi-person-fill"></i> <b>${ev.cliente.idcliente} - ${ev.cliente.clirazon}${ev.cliente.clinombre} ${ev.cliente.cliapellido}</b></div>
                                     <div class="event-row"><i class="bi bi-geo-alt-fill"></i> ${ev.direccion}</div>
                                 </div>
-
                                 <div style="margin-top:8px;">
                                     <span class="event-badge ${badgeClass}">${ev.estadoTexto}</span>
                                 </div>
-
                                 <div class="event-actions">
                                     <button class="btn-icon-sm" title="Ver Cliente"><i class="bi bi-eye"></i></button>
                                     <button class="btn-icon-sm" title="Editar"><i class="bi bi-pencil"></i></button>
@@ -373,7 +365,7 @@
                     eventosHTML = `
                         <div class="empty-slot">
                             <i class="bi bi-calendar2-minus" style="font-size: 2em; margin-bottom:5px;"></i>
-                            <p style="font-size:0.9em; margin:0;">Sin visitas</p>
+                            <p style="font-size:0.9em; margin:0;">Sin eventos</p>
                         </div>
                     `;
                 }
@@ -395,28 +387,32 @@
             }
         }
 
-        // --- MOCK DATA (Simulando Flask) ---
-        function obtenerEventosMock(fechaISO) {
-            const diaSemanaNum = new Date(fechaISO + 'T00:00:00').getDay();
+        async function obtenerEventos(fechaISO) {
+            const url = `/api/agenda?fecha=${fechaISO}`;
+            try {
+                // 1. Realiza la solicitud GET
+                const response = await fetch(url);
 
-            // Simular datos fijos
-            // Si la fecha coincide con HOY (del sistema)
-            const hoyReal = new Date().toISOString().split('T')[0];
+                // 2. Verifica si la respuesta HTTP es exitosa (código 200-299)
+                if (!response.ok) {
+                    // Si el servidor devolvió un código de error (ej: 404, 500)
+                    throw new Error(`Error HTTP ${response.status}: Fallo al cargar eventos.`);
+                }
 
-            if (fechaISO === hoyReal) {
-                return [
-                    { hora: '09:00', fin: '10:00', titulo: 'Reunión Sancor', cliente: 'Sancor Seguros', direccion: 'Centro', estado: 'completed', estadoTexto: 'Realizada' },
-                    { hora: '15:00', fin: '16:00', titulo: 'Visita Técnica', cliente: 'Conaprole', direccion: 'Planta 1', estado: 'pending', estadoTexto: 'Pendiente' }
-                ];
+                // 3. Obtiene y espera (await) el cuerpo de la respuesta en formato JSON
+                const eventos = await response.json();
+
+                // 4. Devolvemos los enventos
+                return eventos;
+            } catch (error) {
+                console.error("Error al obtener eventos del servidor:", error);
+                // Devuelve un array vacío en caso de fallo de red o error HTTP
+                return [];
             }
-            // Si es un día par (ej: martes, jueves, sabado)
-            else if (diaSemanaNum % 2 === 0) {
-                return [
-                    { hora: '11:00', fin: '12:00', titulo: 'Firma Contrato', cliente: 'Juan Pérez', direccion: 'Oficina', estado: 'confirmed', estadoTexto: 'Confirmada' }
-                ];
-            }
-            // Días impares vacíos
-            return [];
+        }
+
+        function agendar(){
+            window.location.href = '/application/agendar';
         }
     </script>
 </body>

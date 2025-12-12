@@ -886,7 +886,7 @@ function cerrarIosModal() {
 }
 
 // 3. Ejecutar la llamada al servidor (POST)
-function ejecutarAvance() {
+async function ejecutarAvance() {
     if (!oportunidadIdParaAvanzar) return;
 
     // Feedback visual (opcional: cambiar texto a "Procesando...")
@@ -899,11 +899,15 @@ function ejecutarAvance() {
 
         }
     })
-    .then(response => {
+    .then(async response => {
         if (response.ok) {
-            // --- ÉXITO (200 OK) ---
-            // Recargar la página actual
-            window.location.reload();
+            const data = await response.json();
+            if (data.redirige && data.uriredireccion.length > 0) {
+                alert(data.uriredireccion + "?idoportunidad=" + oportunidadIdParaAvanzar);
+                window.location.href = data.uriredireccion + "?idoportunidad=" + oportunidadIdParaAvanzar ;
+            } else {
+                window.location.reload();
+            }
         } else {
             // --- ERROR (4xx, 5xx) ---
             throw new Error('Error en la solicitud');

@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Inventario y Asignación de Equipos</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        /* --- 1. VARIABLES Y CONFIGURACIÓN GLOBAL --- */
+        :root {
+            --sidebar-width: 260px;
+            --sidebar-closed-width: 80px;
+            --glass-bg-light: rgba(255, 255, 255, 0.8);
+            --glass-bg-dark: rgba(20, 37, 60, 0.85);
+            --primary-blue: #007bff;
+            --font-dark: #1e3a5f;
+            --font-light: #ffffff;
+            --shadow-soft: rgba(0, 0, 0, 0.15);
+            --transition-speed: 0.3s;
+
+            /* Colores de Estado de Inventario (Adaptados de la agenda) */
+            --status-available: #28a745; /* Verde */
+            --status-assigned: #ffc107;  /* Amarillo */
+            --status-repair: #007bff; /* Azul */
+            --status-retired: #dc3545; /* Rojo */
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #74a0e9 0%, #1f4788 100%);
+            display: flex;
+            min-height: 100vh;
+            color: var(--font-dark);
+            overflow-x: hidden; /* Evitar scroll horizontal */
+        }
+
+        /* --- 2. LAYOUT PRINCIPAL (Sidebar & Content) --- */
+        .sidebar { width: var(--sidebar-width); background-color: var(--glass-bg-dark); color: white; height: 100vh; position: fixed; overflow-x: hidden; padding-top: 20px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-right: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 2px 0 15px rgba(0, 0, 0, 0.3); z-index: 100; transition: width var(--transition-speed) ease; display: flex; flex-direction: column; }
+        .sidebar.closed { width: var(--sidebar-closed-width); }
+
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; padding: 0 20px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); margin-bottom: 15px; width: var(--sidebar-width); padding-right: 15px; transition: width var(--transition-speed) ease; }
+        .sidebar.closed .sidebar-header { width: var(--sidebar-closed-width); justify-content: center; padding: 0 0 20px 0; }
+        .sidebar.closed .logo-container { display: none; }
+
+        .logo-container { background-color: rgba(255,255,255,0.2); border-radius: 8px; padding: 5px; display: flex; align-items: center; justify-content: center; }
+        .logo-container img { max-height: 30px; width: auto; }
+
+        .toggle-btn { background: none; color: white; border: 1px solid rgba(255, 255, 255, 0.4); padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 1.2em; display: flex; align-items: center; justify-content: center; transition: transform var(--transition-speed) ease; }
+
+        .menu ul { list-style: none; }
+        .menu li a { display: flex; align-items: center; padding: 12px 15px; text-decoration: none; color: #dbe4f1; border-radius: 8px; margin: 5px 10px; line-height: 1.2; transition: all 0.2s; }
+        .menu li a:hover { background-color: rgba(255,255,255,0.1); }
+        .menu li a .bi { font-size: 1.3em; margin-right: 15px; width: 25px; text-align: center; line-height: 0; }
+        .sidebar.closed .menu li a span { display: none; }
+        .sidebar.closed .menu li a { justify-content: center; padding: 12px 0; margin: 5px 15px; }
+        .menu li a.active { background-color: var(--primary-blue); box-shadow: 0 2px 8px rgba(0, 123, 255, 0.5); color: white; }
+
+        .content { margin-left: var(--sidebar-width); flex-grow: 1; padding: 25px 30px; width: calc(100% - var(--sidebar-width)); transition: margin-left var(--transition-speed) ease, width var(--transition-speed) ease; }
+        .content.shifted { margin-left: var(--sidebar-closed-width); width: calc(100% - var(--sidebar-closed-width)); }
+
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; border-radius: 12px; background-color: var(--glass-bg-light); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 4px 30px var(--shadow-soft); margin-bottom: 30px; }
+        .navbar input[type="text"] { padding: 10px 15px; width: 350px; background-color: rgba(255, 255, 255, 1); border: none; border-radius: 20px; font-size: 0.9em; color: var(--font-dark); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); }
+        .user-info span { color: var(--font-dark); font-weight: 600; }
+
+        .action-button { padding: 10px 20px; border: none; border-radius: 8px; font-size: 1em; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-add { background-color: #28a745; color: white; box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3); }
+        .btn-add:hover { background-color: #1e7e34; transform: translateY(-1px); }
+
+        h1 { color: var(--font-light); text-shadow: 0 1px 2px var(--shadow-soft); margin-bottom: 0; font-size: 1.8em; }
+
+        /* --- 3. NUEVOS ESTILOS: INVENTARIO Y ASIGNACIÓN --- */
+
+        .inventory-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .inventory-container {
+            background-color: var(--glass-bg-light);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 30px var(--shadow-soft);
+        }
+
+        .quick-assign-card {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        .quick-assign-card h3 {
+            margin-top: 0;
+            color: var(--primary-blue);
+            font-size: 1.3em;
+            margin-bottom: 15px;
+        }
+        .quick-assign-card .form-group {
+            margin-bottom: 15px;
+        }
+        .quick-assign-card label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+        .quick-assign-card input[type="text"],
+        .quick-assign-card select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            background-color: white;
+            transition: border-color 0.2s;
+        }
+        .quick-assign-card input[type="text"]:focus,
+        .quick-assign-card select:focus {
+            border-color: var(--primary-blue);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
+        .btn-assign {
+            background-color: var(--primary-blue);
+            color: white;
+            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+        }
+        .btn-assign:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        /* Estilos de la Tabla */
+        .inventory-table-responsive {
+            overflow-x: auto;
+        }
+        .inventory-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+        .inventory-table thead th {
+            text-align: left;
+            padding: 12px 15px;
+            background-color: #f1f5f9;
+            color: var(--font-dark);
+            font-weight: 700;
+            border-bottom: 2px solid #ddd;
+        }
+        .inventory-table tbody td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+        }
+        .inventory-table tbody tr:hover {
+            background-color: rgba(0, 123, 255, 0.05);
+        }
+
+        /* Estilos para el estado */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .status-available { background: rgba(40, 167, 69, 0.15); color: var(--status-available); }
+        .status-assigned { background: rgba(255, 193, 7, 0.2); color: #d39e00; }
+        .status-repair { background: rgba(0, 123, 255, 0.15); color: var(--status-repair); }
+        .status-retired { background: rgba(220, 53, 69, 0.15); color: var(--status-retired); }
+
+        .btn-action-table {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            background-color: white;
+            color: #555;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-action-table:hover {
+            background-color: var(--primary-blue);
+            color: white;
+            border-color: var(--primary-blue);
+        }
+
+        /* Estilos para selección múltiple */
+        .select-checkbox {
+            margin: 0;
+            padding: 0;
+            width: 18px;
+            height: 18px;
+            vertical-align: middle;
+        }
+        .row-selected {
+            background-color: rgba(0, 123, 255, 0.1) !important;
+            border-left: 3px solid var(--primary-blue);
+        }
+
+    </style>
+</head>
+<body>
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-container">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/PlaceholderLC.svg/1024px-PlaceholderLC.svg.png" alt="CRM Logo">
+            </div>
+            <button id="toggleBtn" class="toggle-btn" title="Plegar/Desplegar Menú">&#9776;</button>
+        </div>
+        <nav class="menu">
+            <ul>
+                <li><a href="#"><i class="bi bi-speedometer2"></i> <span>Dashboard</span></a></li>
+                <li class="active"><a href="#" class="active"><i class="bi bi-cpu"></i> <span>Inventario Equipos</span></a></li>
+                <li><a href="#"><i class="bi bi-person-workspace"></i> <span>Asignaciones</span></a></li>
+                <li><a href="#"><i class="bi bi-file-earmark-text"></i> <span>Historial</span></a></li>
+                <li><a href="#"><i class="bi bi-graph-up-arrow"></i> <span>Reportes</span></a></li>
+                <hr style="margin: 15px 20px; border-color: rgba(255, 255, 255, 0.2);">
+                <li><a href="#"><i class="bi bi-gear"></i> <span>Configuración</span></a></li>
+                <li><a href="#"><i class="bi bi-box-arrow-right"></i> <span>Cerrar Sesión</span></a></li>
+            </ul>
+        </nav>
+    </aside>
+    <main id="content" class="content">
+        <header class="navbar">
+            <input type="text" id="quickSearchInput" placeholder="Buscar por Serie, Marca, o Empleado Asignado...">
+            <div class="user-info">
+                <span>Hola, Juan Miranda</span>
+            </div>
+        </header>
+        <div class="inventory-container">
+
+            <div class="quick-assign-card">
+                <h3><i class="bi bi-qr-code-scan"></i> Buscar equipo por Serie</h3>
+                <div style="display: flex; gap: 20px;">
+                    <div class="form-group" style="flex: 2;">
+                        <label for="serieEquipo">Serie del Equipo</label>
+                        <input type="text" id="serieEquipo" placeholder="Ej: SN1A2B3C4D" onchange="buscarEquipoPorSerie()">
+                    </div>
+                    <div class="form-group" style="flex: 2;">
+
+                    </div>
+                    <div class="form-group" style="flex: 1; display: flex; align-items: flex-end;">
+                        <button class="action-button btn-add" onclick="asignarEquipoUnico()" style="width: 100%;">
+                            <i class="bi bi-plus-lg"></i> Agregar equipo
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <h2><i class="bi bi-list-columns-reverse"></i> Equipos a asignar</h2>
+            <div class="inventory-table-responsive">
+                <table class="inventory-table" id="inventoryTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 30px;">
+                                <input type="checkbox" id="selectAll" class="select-checkbox" onchange="toggleSelectAll(this)">
+                            </th>
+                            <th>Serie</th>
+                            <th>Marca/Modelo</th>
+                            <th>Tipo Articulo</th>
+                            <th>Proveedor</th>
+                            <th>Estado</th>
+                            <th>Asignado a</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr data-id="101" data-status="assigned">
+                            <td><input type="checkbox" class="select-checkbox asset-checkbox" disabled></td>
+                            <td>SN987654321</td>
+                            <td>Dell Latitude 5420</td>
+                            <td>Portátil</td>
+                            <td>TechCorp S.A.</td>
+                            <td><span class="status-badge status-assigned">Asignado</span></td>
+                            <td>Ana López</td>
+                            <td>
+                                <button class="btn-action-table" title="Liberar Equipo" onclick="liberarEquipo('101')"><i class="bi bi-box-arrow-in-left"></i></button>
+                                <button class="btn-action-table" title="Historial"><i class="bi bi-clock-history"></i></button>
+                            </td>
+                        </tr>
+                        <tr data-id="102" data-status="available">
+                            <td><input type="checkbox" class="select-checkbox asset-checkbox" onchange="checkSelection(this)"></td>
+                            <td>SN123456789</td>
+                            <td>HP ProDisplay P240</td>
+                            <td>Monitor</td>
+                            <td>DisplayNet</td>
+                            <td><span class="status-badge status-available">Disponible</span></td>
+                            <td>-</td>
+                            <td>
+                                <button class="btn-action-table" title="Editar"><i class="bi bi-pencil-square"></i></button>
+                                <button class="btn-action-table" title="Asignar"><i class="bi bi-person-plus"></i></button>
+                            </td>
+                        </tr>
+                        <tr data-id="103" data-status="repair">
+                            <td><input type="checkbox" class="select-checkbox asset-checkbox" disabled></td>
+                            <td>SN000AABBCC</td>
+                            <td>iPhone 14</td>
+                            <td>Smartphone</td>
+                            <td>MobileWorld</td>
+                            <td><span class="status-badge status-repair">En Reparación</span></td>
+                            <td>-</td>
+                            <td>
+                                <button class="btn-action-table" title="Ver"><i class="bi bi-eye"></i></button>
+                                <button class="btn-action-table" title="Historial"><i class="bi bi-clock-history"></i></button>
+                            </td>
+                        </tr>
+                         <tr data-id="104" data-status="available">
+                            <td><input type="checkbox" class="select-checkbox asset-checkbox" onchange="checkSelection(this)"></td>
+                            <td>SN1A2B3C4D</td>
+                            <td>Logitech K120</td>
+                            <td>Teclado</td>
+                            <td>Logitech Corp.</td>
+                            <td><span class="status-badge status-available">Disponible</span></td>
+                            <td>-</td>
+                            <td>
+                                <button class="btn-action-table" title="Editar"><i class="bi bi-pencil-square"></i></button>
+                                <button class="btn-action-table" title="Asignar"><i class="bi bi-person-plus"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="multipleAssignControls" class="quick-assign-card" style="margin-top: 20px; display: none;">
+                <h3><i class="bi bi-people"></i> Asignar <span id="selectedCount">0</span> Equipos Seleccionados</h3>
+                <div style="display: flex; gap: 20px;">
+                    <div class="form-group" style="flex: 2;">
+                        <label for="empleadoAsignarMultiple">Asignar Equipos a Empleado</label>
+                        <select id="empleadoAsignarMultiple">
+                            <option value="">Seleccione Empleado...</option>
+                            <option value="1">Empleado Uno (Ana)</option>
+                            <option value="2">Empleado Dos (Luis)</option>
+                            </select>
+                    </div>
+                    <div class="form-group" style="flex: 1; display: flex; align-items: flex-end;">
+                        <button class="action-button btn-assign" onclick="asignarEquiposMultiples()" style="width: 100%;">
+                            <i class="bi bi-send"></i> Confirmar Asignación
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Inicializar Sidebar
+            const toggleBtn = document.getElementById('toggleBtn');
+            const sidebar = document.getElementById('sidebar');
+            const content = document.getElementById('content');
+            if(toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    sidebar.classList.toggle('closed');
+                    content.classList.toggle('shifted');
+                });
+            }
+
+            // Inicializar el estado de la asignación múltiple
+            updateMultipleAssignControls();
+        });
+
+        // --- FUNCIONES DE ASIGNACIÓN ÚNICA (RÁPIDA) ---
+
+        function buscarEquipoPorSerie() {
+            const serie = document.getElementById('serieEquipo').value.trim();
+            if (serie) {
+                console.log(`Buscando equipo con serie: ${serie}`);
+                // [Lógica AJAX: Buscar equipo. Si está disponible, se sigue con la asignación.]
+                alert(`Buscando ${serie}...`);
+            }
+        }
+
+        function asignarEquipoUnico() {
+            const serie = document.getElementById('serieEquipo').value.trim();
+            const empleadoId = document.getElementById('empleadoAsignar').value;
+
+            if (serie && empleadoId) {
+                console.log(`Asignando único equipo con serie ${serie} al empleado ID ${empleadoId}`);
+                // [Lógica AJAX: /api/asignar/unico]
+                alert(`Equipo ${serie} asignado exitosamente al empleado ${empleadoId}!`);
+
+                // Limpiar campos y refrescar
+                document.getElementById('serieEquipo').value = '';
+                document.getElementById('empleadoAsignar').value = '';
+                // Idealmente, refrescar la tabla o la fila afectada
+            } else {
+                alert('Por favor, ingrese la Serie y seleccione un Empleado.');
+            }
+        }
+
+        // --- FUNCIONES DE ASIGNACIÓN MÚLTIPLE ---
+
+        function toggleSelectAll(checkbox) {
+            const checkboxes = document.querySelectorAll('.asset-checkbox:not(:disabled)');
+            checkboxes.forEach(cb => {
+                cb.checked = checkbox.checked;
+                // Simular el cambio para actualizar el estilo
+                checkSelection(cb);
+            });
+            updateMultipleAssignControls();
+        }
+
+        function checkSelection(checkbox) {
+            const row = checkbox.closest('tr');
+            if (checkbox.checked) {
+                row.classList.add('row-selected');
+            } else {
+                row.classList.remove('row-selected');
+            }
+            updateMultipleAssignControls();
+        }
+
+        function updateMultipleAssignControls() {
+            const selectedCheckboxes = document.querySelectorAll('.asset-checkbox:checked');
+            const count = selectedCheckboxes.length;
+            const controls = document.getElementById('multipleAssignControls');
+            const countSpan = document.getElementById('selectedCount');
+
+            countSpan.textContent = count;
+
+            if (count > 0) {
+                controls.style.display = 'block';
+            } else {
+                controls.style.display = 'none';
+            }
+
+            // Actualizar checkbox "Seleccionar Todos"
+            const allAvailableCheckboxes = document.querySelectorAll('.asset-checkbox:not(:disabled)');
+            const selectAll = document.getElementById('selectAll');
+
+            if (allAvailableCheckboxes.length > 0) {
+                 selectAll.checked = count === allAvailableCheckboxes.length;
+            } else {
+                 selectAll.checked = false; // No hay nada que seleccionar
+            }
+        }
+
+        function asignarEquiposMultiples() {
+            const selectedCheckboxes = document.querySelectorAll('.asset-checkbox:checked');
+            const empleadoId = document.getElementById('empleadoAsignarMultiple').value;
+            const selectedAssetIds = Array.from(selectedCheckboxes).map(cb => cb.closest('tr').getAttribute('data-id'));
+
+            if (selectedAssetIds.length > 0 && empleadoId) {
+                console.log(`Asignando IDs [${selectedAssetIds.join(', ')}] al empleado ID ${empleadoId}`);
+                // [Lógica AJAX: /api/asignar/multiples]
+
+                alert(`${selectedAssetIds.length} equipos asignados al empleado ${empleadoId}.`);
+
+                // Después de la asignación exitosa:
+                // 1. Desmarcar todos los checkboxes
+                document.getElementById('selectAll').checked = false;
+                selectedCheckboxes.forEach(cb => {
+                    cb.checked = false;
+                    cb.closest('tr').classList.remove('row-selected');
+                    // Idealmente: Recargar o actualizar la fila en la tabla (cambiar estado y asignado a)
+                });
+
+                // 2. Limpiar el selector de empleado y actualizar controles
+                document.getElementById('empleadoAsignarMultiple').value = '';
+                updateMultipleAssignControls();
+
+                // Se sugiere recargar la tabla completa o actualizar las filas afectadas aquí
+            } else {
+                alert('Debe seleccionar al menos un equipo y un empleado para la asignación múltiple.');
+            }
+        }
+
+        // --- OTRAS FUNCIONES ---
+
+        function liberarEquipo(id) {
+            if (confirm(`¿Está seguro de que desea liberar el equipo ID ${id}?`)) {
+                console.log(`Liberando equipo ID ${id}`);
+                // [Lógica AJAX: /api/liberar/id]
+                alert(`Equipo ${id} liberado y puesto en Disponible.`);
+            }
+        }
+
+        function abrirModalAgregar(){
+            // Redirige o abre un modal para agregar un nuevo activo.
+            window.location.href = '/application/agregar-equipo';
+        }
+    </script>
+</body>
+</html>

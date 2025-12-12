@@ -6,6 +6,7 @@ class Equipo(db.Model):
     idmarca = db.Column(db.Integer)
     idmodelo = db.Column(db.Integer)
     idproveedor = db.Column(db.Integer)
+    idfamilia = db.Column(db.Integer)
     fechaalta = db.Column(db.DateTime)
     altapor = db.Column(db.String(128))
     fechabaja = db.Column(db.DateTime)
@@ -45,7 +46,7 @@ class Modelo(db.Model):
     idmonedacompra = db.Column(db.Integer)
     precioCompra = db.Column(db.DECIMAL(10, 2))
 
-class Proveedor():
+class Proveedor(db.Model):
     idProveedor = db.Column(db.Integer, primary_key=True, autoincrement=True)
     proveedor = db.Column(db.String(512))
     observacion = db.Column(db.Text)
@@ -54,3 +55,16 @@ class Proveedor():
     altapor =  db.Column(db.String(128))
     fechamodificado = db.Column(db.DateTime)
     modificadopor = db.Column(db.String(128))
+
+class EquipoTipo(db.Model):
+    idTipoEquipo = db.Column(db.Integer, primary_key=True)
+    descripcion = db.Column(db.String(512))
+    observacion = db.Column(db.Text)
+    visible = db.Column(db.Boolean)
+    idEquipoFamilia = db.Column(db.Integer, primary_key=True)
+
+class EquipoFamilia(db.Model):
+    idEquipoFamilia = db.Column(db.Integer, primary_key=True)
+    descripcion = db.Column(db.String(512))
+    observacion = db.Column(db.Text)
+    visible = db.Column(db.Boolean)

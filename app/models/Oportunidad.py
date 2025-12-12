@@ -70,6 +70,8 @@ class EstadoOportunidad(db.Model):
     fechanotificado = db.Column(db.DateTime)
     notifica = db.Column(db.Boolean)
     automatica = db.Column(db.Boolean)
+    redirige = db.Column(db.String(4096), unique=False)
+    uriredireccion = db.Column(db.String(4096), unique=False)
 
 class EtapaOportunidad(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -84,6 +86,8 @@ class EtapaOportunidad(db.Model):
     fechanotificado = db.Column(db.DateTime)
     notifica = db.Column(db.Boolean)
     automatica = db.Column(db.Boolean)
+    redirige = db.Column(db.String(4096), unique=False)
+    uriredireccion = db.Column(db.String(4096), unique=False)
 
 class Sector(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)

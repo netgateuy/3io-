@@ -2,7 +2,7 @@ from flask import request, jsonify
 import base64, re
 from ..models.Contract import Contract
 from ..models.Product import ProductContract, ContractProductFieldValue, ProductFieldPrice, ProductFieldValue, ProductField, Product
-from ..models.Equipo import Equipo, Marca, Modelo, Proveedor
+from ..models.Equipo import Equipo, Marca, Modelo, Proveedor, EquipoTipo, EquipoFamilia
 from ..models.Oportunidad import Oportunidad, EtapaOportunidad, TipoOportunidad, AccionOportunidad, EstadoOportunidad, ArchivoOportunidad
 from ..models.Cliente import Cliente, TipoID
 from ..models.SubPais import SubPais
@@ -13,6 +13,7 @@ from ..models.Vendedor import Vendedor
 from ..models.FormaPago import FormaPago
 from ..models.TipoPago import TipoPago
 from ..models.Ciudad import Ciudad
+from ..models.Agenda import Agenda
 from . import api
 from time import gmtime, strftime
 from app import db
@@ -89,11 +90,12 @@ def addcontract():
 def addequipo():
     try:
         content = request.json
-        equipo  = Equipo()
+        equipo = Equipo()
         equipo.altapor = content["altapor"]
         equipo.fechaalta = content["fechaalta"]
         equipo.idmarca = content["idmarca"]
         equipo.idmodelo = content["idmodelo"]
+        equipo.idfamilia = content["idfamilia"]
         equipo.idtipoequipo = content["idtipoequipo"]
         equipo.nroserie = content["nroserie"]
         equipo.idproveedor = content["idproveedor"]
@@ -260,6 +262,9 @@ def addoportunidad():
             estado.notifica = etapa.notifica
             estado.descripcion = etapa.descripcion
             estado.automatica = etapa.automatica
+            estado.redirige = etapa.redirige
+            estado.uriredireccion = etapa.uriredireccion
+
             db.session.add(estado)
             db.session.commit()
         return jsonify(
@@ -715,6 +720,8 @@ def avanzar_etapa(idoportunidad):
         return jsonify(
             observation="Etapa avanzada correctamente.",
             error=False,
+            redirige=etapa.redirige,
+            uriredireccion=etapa.uriredireccion,
             serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
         ), 200
     except Exception as e:
@@ -723,3 +730,177 @@ def avanzar_etapa(idoportunidad):
             error=False,
             serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
         ), 500
+
+
+@api.route('/agendar', methods=['POST'])
+def crear_agenda():
+    data = request.json
+
+    try:
+        # Parsers de fecha y hora (Strings -> Objetos Python)
+        # Asume formato fecha: "YYYY-MM-DD" y hora: "HH:MM"
+
+        fecha_obj = datetime.strptime(data['fecha'], '%Y-%m-%d').date()
+        hora_inicio_obj = datetime.strptime(data['hora_inicio'], '%H:%M').time()
+
+        # Hora fin es opcional, manejamos si viene o no
+        hora_fin_obj = None
+        if data.get('hora_fin'):
+            hora_fin_obj = datetime.strptime(data['hora_fin'], '%H:%M').time()
+
+        nueva_agenda = Agenda(
+            descripcion=data.get('descripcion'),
+            idoportunidad=data.get('idoportunidad'),
+            idcliente=data.get('idcliente'),
+            idtipoagenda=data.get('idtipoagenda'),
+            notas=data.get('notas'),
+            direccion=data.get('direccion'),
+            fecha=fecha_obj,
+            hora_inicio=hora_inicio_obj,
+            hora_fin=hora_fin_obj,
+            fechacancelado=None,
+            fechacompletado=None
+        )
+
+        db.session.add(nueva_agenda)
+        db.session.commit()
+
+        return jsonify({'mensaje': 'Agenda creada', 'id': nueva_agenda.id}), 201
+
+    except ValueError as e:
+        return jsonify({'error': 'Formato de fecha/hora inválido. Use YYYY-MM-DD y HH:MM', 'detalle': str(e)}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Error interno', 'detalle': str(e)}), 500
+
+@api.route('/agenda/<int:id>', methods=['GET'])
+def obtener_agenda(id):
+    agenda = Agenda.query.get_or_404(id)
+    # Usamos el helper to_dict() que creamos en la clase
+    return jsonify(agenda.to_dict()), 200
+
+
+@api.route('/agenda/<int:id>', methods=['PUT'])
+def modificar_agenda(id):
+    agenda = Agenda.query.get_or_404(id)
+    data = request.json
+
+    try:
+        # Actualizamos solo si el campo viene en el JSON
+        if 'descripcion' in data:
+            agenda.descripcion = data['descripcion']
+
+        if 'idoportunidad' in data:
+            agenda.idoportunidad = data['idoportunidad']
+
+        if 'idcliente' in data:
+            agenda.idcliente = data['idcliente']
+
+        # Manejo de Fechas (Strings -> Objetos)
+        if 'fecha' in data and data['fecha']:
+            agenda.fecha = datetime.strptime(data['fecha'], '%Y-%m-%d').date()
+
+        if 'fechacancelado' in data:
+            # Si envían null o vacío, lo guardamos como None
+            if data['fechacancelado']:
+                agenda.fechacancelado = datetime.strptime(data['fechacancelado'], '%Y-%m-%d').date()
+            else:
+                agenda.fechacancelado = None
+
+        if 'fechacompletado' in data:
+            if data['fechacompletado']:
+                agenda.fechacompletado = datetime.strptime(data['fechacompletado'], '%Y-%m-%d').date()
+            else:
+                agenda.fechacompletado = None
+
+        # Manejo de Horas
+        if 'hora_inicio' in data and data['hora_inicio']:
+            agenda.hora_inicio = datetime.strptime(data['hora_inicio'], '%H:%M').time()
+
+        if 'hora_fin' in data:
+            if data['hora_fin']:
+                agenda.hora_fin = datetime.strptime(data['hora_fin'], '%H:%M').time()
+            else:
+                agenda.hora_fin = None
+
+        db.session.commit()
+        return jsonify({'mensaje': 'Agenda actualizada', 'agenda': agenda.to_dict()}), 200
+
+    except ValueError:
+        return jsonify({'error': 'Formato de fecha/hora inválido'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@api.route('/agenda', methods=['GET'])
+def obtener_agenda_rango():
+    agenda = []
+    fecha = request.args.get('fecha')
+    try:
+        fecha = datetime.strptime(fecha, '%Y-%m-%d').date()
+    except:
+        return jsonify({"error": "Fechas de inicio o fin inválidas"}), 400
+
+    agenda_eventos = Agenda.query.filter(
+         Agenda.fecha == fecha
+    ).order_by(Agenda.id).all()
+
+    for evento in agenda_eventos:
+        cliente = {}
+        oportunidad = {}
+        if evento.idcliente:
+            cl = Cliente.query.filter_by(idCliente=evento.idcliente).first()
+            if cl:
+                cliente["id"] = cl.id
+                cliente["idcliente"] = cl.idCliente
+                cliente["clinombre"] = cl.cliNombre
+                cliente["cliapellido"] = cl.cliApellido
+                cliente["clirazon"] = cl.cliRazon
+
+            op = Oportunidad.query.filter_by(id=evento.idoportunidad).first()
+            if op:
+               oportunidad["id"] = op.id
+        estado = "pending"
+        estadoTexto  = "Pendiente"
+        if evento.fechacancelado:
+            estado = "cancelled"
+            estadoTexto = "Cancelado"
+        if evento.fechacompletado:
+            estado = "completed"
+            estadoTexto = "Completado"
+
+        agenda.append({"id":evento.id, "estado": estado, "estadoTexto": estadoTexto, "fecha": evento.fecha.isoformat() if evento.fecha else None, "oportunidad": oportunidad, "cliente": cliente, "idtipoagenda": evento.idtipoagenda, "fechacompletado": evento.fechacompletado.isoformat() if evento.fechacompletado else None, "descripcion": evento.descripcion, "direccion":evento.direccion, "notas":evento.notas, "hora_inicio": evento.hora_inicio.strftime('%H:%M') if evento.hora_inicio else None, "hora_fin": evento.hora_fin.strftime('%H:%M') if evento.hora_fin else None})
+
+    return jsonify({
+        "data": agenda
+    })
+
+
+@api.route('/equipos/serie/<string:nro_serie>', methods=['GET'])
+def buscar_equipo_por_serie(nro_serie):
+    """
+    Busca un equipo por su número de serie (nroserie)
+    y devuelve el resultado en formato JSON.
+    """
+    try:
+        equipo = Equipo.query.filter_by(nroserie=nro_serie).one_or_none()
+
+        if equipo is None:
+            return jsonify({
+                "mensaje": f"Equipo con serie '{nro_serie}' no encontrado."
+            }), 404
+
+        equipo = {}
+        equipo["id"] = 1234
+
+        # 4. Devolver la respuesta JSON con código 200 (OK)
+        return jsonify(equipo), 200
+
+    except Exception as e:
+        # Manejo de otros posibles errores (e.g., error de DB)
+        print(f"Error al buscar equipo: {e}")
+        return jsonify({
+            "mensaje": "Ocurrió un error interno del servidor.",
+            "error": str(e)
+        }), 500
