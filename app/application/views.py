@@ -8,6 +8,7 @@ from ..models.Moneda import Moneda
 from ..models.Vendedor import Vendedor
 from ..models.User import User
 from ..models.Agenda import Agenda, TipoAgenda
+from ..models.Equipo import EquipoTipo, Proveedor
 from ..models.Oportunidad import TipoOportunidad, Oportunidad, EstadoOportunidad, TipoAccion, AccionOportunidad, ArchivoOportunidad, TipoArchivo
 from . import application
 from app import db
@@ -84,7 +85,26 @@ def agendar():
 
 @application.route('/equipos')
 def equipos():
-    return render_template('/application/equipos.html')
+
+    idoportunidad = request.args.get('idoportunidad', default=None, type=int)
+    oportunidad = Oportunidad.query.filter_by(id=idoportunidad).first()
+    contratos = Contract.query.filter_by(idoportunidad=idoportunidad).all()
+    productos = []
+    for contrato in contratos:
+        productoscontrato = ProductContract.query.filter_by(idcontract=contrato.id).all()
+        for p in productoscontrato:
+            moneda = Moneda.query.filter_by(idMoneda=p.idmoneda).first()
+            product = Product.query.filter_by(id=p.idproduct).first()
+            p.product = product
+            p.moneda = moneda
+            productos.append(p)
+    return render_template('/application/equipos.html', oportunidad=oportunidad, productos=productos)
+
+@application.route('/altaequipo')
+def altaequipo():
+    tiposquipo = EquipoTipo.query.filter_by(visible=1).all()
+    proveedores = Proveedor.query.filter_by(visible=1).all()
+    return render_template('/application/altaequipo.html', tiposquipo=tiposquipo,proveedores=proveedores)
 
 
 @application.route('/oportunidad/<id>')

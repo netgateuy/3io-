@@ -207,6 +207,92 @@
             border-left: 3px solid var(--primary-blue);
         }
 
+        /* Contenedor general para dar contexto */
+        #listaEquiposContenedor {
+            padding: 20px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.05); /* Fondo muy sutil */
+        }
+
+        /* Estilo de la tabla Glass */
+        .table-glass {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: rgba(255, 255, 255, 0.4); /* Transparencia blanca */
+            backdrop-filter: blur(15px); /* Desenfoque de fondo */
+            -webkit-backdrop-filter: blur(15px); /* Soporte para Safari/iOS */
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+        }
+
+        .table-glass thead {
+            background: rgba(0, 122, 255, 0.15); /* Azul iOS con transparencia */
+            backdrop-filter: blur(5px);
+        }
+
+        .table-glass th {
+            padding: 14px 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #0056b3; /* Texto azul oscuro para contraste */
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Filas alternas (Efecto Cebra Glass) */
+        .table-glass tbody tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .table-glass tbody tr:nth-child(odd) {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .table-glass tbody tr:hover {
+            background: rgba(255, 255, 255, 0.4);
+            box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.2);
+            transition: all 0.2s ease-in-out;
+        }
+
+        .table-glass td {
+            padding: 14px 15px;
+            color: #2c3e50;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-ios-add {
+            background: rgba(0, 122, 255, 0.8); /* Azul vibrante de iOS */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: white;
+            border: none;
+            padding: 10px 20px; /* Padding controlado para que no sea gigante */
+            border-radius: 12px; /* Bordes suaves */
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px; /* Espacio entre icono y texto */
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+            height: fit-content; /* Se ajusta al contenido */
+        }
+
+        .btn-ios-add:hover {
+            background: rgba(0, 122, 255, 1);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 15px rgba(0, 122, 255, 0.4);
+        }
+
+        .btn-ios-add:active {
+            transform: scale(0.95); /* Efecto de pulsación de iPhone */
+        }
     </style>
 </head>
 <body>
@@ -238,123 +324,49 @@
             </div>
         </header>
         <div class="inventory-container">
-
             <div class="quick-assign-card">
                 <h3><i class="bi bi-qr-code-scan"></i> Buscar equipo por Serie</h3>
+                <input type="hidden" name="idoportunidad" id="idoportunidad" value="{{oportunidad.id}}">
                 <div style="display: flex; gap: 20px;">
                     <div class="form-group" style="flex: 2;">
                         <label for="serieEquipo">Serie del Equipo</label>
-                        <input type="text" id="serieEquipo" placeholder="Ej: SN1A2B3C4D" onchange="buscarEquipoPorSerie()">
+                        <input type="text" id="serieEquipo" placeholder="Ej: SN1A2B3C4D" onkeyup="buscarEquipoPorSerie()">
                     </div>
                     <div class="form-group" style="flex: 2;">
-
+                    <label for="idproductcontract">Producto</label>
+                        <select id="idproductcontract" name="idproductcontract" required>
+                           {% for producto in productos %}
+                                <option value="{{ producto.id }}">{{ producto.product.name }} - {{ producto.moneda.abreviacion }} {{ producto.importe }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                     <div class="form-group" style="flex: 1; display: flex; align-items: flex-end;">
-                        <button class="action-button btn-add" onclick="asignarEquipoUnico()" style="width: 100%;">
+                        <button id="buttonAgregarEquipo" class="action-button btn-add" onclick="agregarEquipo()" style="display: none; width: 100%;">
                             <i class="bi bi-plus-lg"></i> Agregar equipo
                         </button>
                     </div>
                 </div>
+                <div id="infoEquipoEncontrado" style="display: none; margin-top: 10px; padding: 10px; background-color: #e8f5e9; border-left: 5px solid #2e7d32; border-radius: 4px;">
+                        <small style="color: #2e7d32; font-weight: bold;">✓ Equipo localizado:</small>
+                        <br><br>
+                        <div id="detalleEquipo" style="font-size: 0.9em; color: #333;"></div>
+                    </div>
             </div>
-
             <h2><i class="bi bi-list-columns-reverse"></i> Equipos a asignar</h2>
-            <div class="inventory-table-responsive">
-                <table class="inventory-table" id="inventoryTable">
-                    <thead>
-                        <tr>
-                            <th style="width: 30px;">
-                                <input type="checkbox" id="selectAll" class="select-checkbox" onchange="toggleSelectAll(this)">
-                            </th>
-                            <th>Serie</th>
-                            <th>Marca/Modelo</th>
-                            <th>Tipo Articulo</th>
-                            <th>Proveedor</th>
-                            <th>Estado</th>
-                            <th>Asignado a</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr data-id="101" data-status="assigned">
-                            <td><input type="checkbox" class="select-checkbox asset-checkbox" disabled></td>
-                            <td>SN987654321</td>
-                            <td>Dell Latitude 5420</td>
-                            <td>Portátil</td>
-                            <td>TechCorp S.A.</td>
-                            <td><span class="status-badge status-assigned">Asignado</span></td>
-                            <td>Ana López</td>
-                            <td>
-                                <button class="btn-action-table" title="Liberar Equipo" onclick="liberarEquipo('101')"><i class="bi bi-box-arrow-in-left"></i></button>
-                                <button class="btn-action-table" title="Historial"><i class="bi bi-clock-history"></i></button>
-                            </td>
-                        </tr>
-                        <tr data-id="102" data-status="available">
-                            <td><input type="checkbox" class="select-checkbox asset-checkbox" onchange="checkSelection(this)"></td>
-                            <td>SN123456789</td>
-                            <td>HP ProDisplay P240</td>
-                            <td>Monitor</td>
-                            <td>DisplayNet</td>
-                            <td><span class="status-badge status-available">Disponible</span></td>
-                            <td>-</td>
-                            <td>
-                                <button class="btn-action-table" title="Editar"><i class="bi bi-pencil-square"></i></button>
-                                <button class="btn-action-table" title="Asignar"><i class="bi bi-person-plus"></i></button>
-                            </td>
-                        </tr>
-                        <tr data-id="103" data-status="repair">
-                            <td><input type="checkbox" class="select-checkbox asset-checkbox" disabled></td>
-                            <td>SN000AABBCC</td>
-                            <td>iPhone 14</td>
-                            <td>Smartphone</td>
-                            <td>MobileWorld</td>
-                            <td><span class="status-badge status-repair">En Reparación</span></td>
-                            <td>-</td>
-                            <td>
-                                <button class="btn-action-table" title="Ver"><i class="bi bi-eye"></i></button>
-                                <button class="btn-action-table" title="Historial"><i class="bi bi-clock-history"></i></button>
-                            </td>
-                        </tr>
-                         <tr data-id="104" data-status="available">
-                            <td><input type="checkbox" class="select-checkbox asset-checkbox" onchange="checkSelection(this)"></td>
-                            <td>SN1A2B3C4D</td>
-                            <td>Logitech K120</td>
-                            <td>Teclado</td>
-                            <td>Logitech Corp.</td>
-                            <td><span class="status-badge status-available">Disponible</span></td>
-                            <td>-</td>
-                            <td>
-                                <button class="btn-action-table" title="Editar"><i class="bi bi-pencil-square"></i></button>
-                                <button class="btn-action-table" title="Asignar"><i class="bi bi-person-plus"></i></button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="inventory-table-responsive" id="listaEquiposContenedor">
             </div>
 
-            <div id="multipleAssignControls" class="quick-assign-card" style="margin-top: 20px; display: none;">
-                <h3><i class="bi bi-people"></i> Asignar <span id="selectedCount">0</span> Equipos Seleccionados</h3>
-                <div style="display: flex; gap: 20px;">
-                    <div class="form-group" style="flex: 2;">
-                        <label for="empleadoAsignarMultiple">Asignar Equipos a Empleado</label>
-                        <select id="empleadoAsignarMultiple">
-                            <option value="">Seleccione Empleado...</option>
-                            <option value="1">Empleado Uno (Ana)</option>
-                            <option value="2">Empleado Dos (Luis)</option>
-                            </select>
-                    </div>
-                    <div class="form-group" style="flex: 1; display: flex; align-items: flex-end;">
-                        <button class="action-button btn-assign" onclick="asignarEquiposMultiples()" style="width: 100%;">
-                            <i class="bi bi-send"></i> Confirmar Asignación
-                        </button>
-                    </div>
-                </div>
+            <div class="form-group" style="display: flex; align-items: flex-end; padding-bottom: 5px;">
+                <button id="buttonAsignarEquipo" class="btn-ios-add" onclick="asignarEquipos()">
+                    <i class="bi bi-plus-circle"></i> Asignar equipos
+                </button>
             </div>
-
         </div>
-
     </main>
-
     <script>
+        let equiposAsignados = [];
+        let equipoEncontrado = null;
+
         document.addEventListener('DOMContentLoaded', () => {
             // Inicializar Sidebar
             const toggleBtn = document.getElementById('toggleBtn');
@@ -366,131 +378,161 @@
                     content.classList.toggle('shifted');
                 });
             }
-
-            // Inicializar el estado de la asignación múltiple
-            updateMultipleAssignControls();
         });
 
-        // --- FUNCIONES DE ASIGNACIÓN ÚNICA (RÁPIDA) ---
-
-        function buscarEquipoPorSerie() {
+        async function buscarEquipoPorSerie() {
+            const infoDiv = document.getElementById('infoEquipoEncontrado');
+            const button = document.getElementById('buttonAgregarEquipo');
+            infoDiv.style.display = 'none';
+            button.style.display = 'none';
+            const detalleDiv = document.getElementById('detalleEquipo');
             const serie = document.getElementById('serieEquipo').value.trim();
-            if (serie) {
-                console.log(`Buscando equipo con serie: ${serie}`);
-                // [Lógica AJAX: Buscar equipo. Si está disponible, se sigue con la asignación.]
-                alert(`Buscando ${serie}...`);
+            if (serie){
+                const uri = `/api/equipo/serie/${serie}`;
+                const response = await fetch(uri);
+                if(response.ok){
+                    const equipo = await response.json();
+                    equipoEncontrado = equipo;
+
+                    // 1. Chequear si el equipo ya está en el array (por nroserie o id)
+                    const existe = equiposAsignados.some(e => e.id === equipoEncontrado.id);
+                    if (existe) {
+                        return;
+                    }
+                    infoDiv.style.display = 'block';
+                    button.style.display = 'block';
+                    detalleDiv.innerHTML = `<strong>Tipo Equipo:</strong> ${equipo.tipoequipo.tipoequipo} / <strong>Marca:</strong> ${equipo.marca.marca} / <strong>Modelo:</strong> ${equipo.modelo.modelo} / <strong>Serie:</strong> ${equipo.nroserie} `;
+                }else{
+
+                }
             }
         }
 
-        function asignarEquipoUnico() {
-            const serie = document.getElementById('serieEquipo').value.trim();
-            const empleadoId = document.getElementById('empleadoAsignar').value;
+        function agregarEquipo() {
+            if (!equipoEncontrado) return;
 
-            if (serie && empleadoId) {
-                console.log(`Asignando único equipo con serie ${serie} al empleado ID ${empleadoId}`);
-                // [Lógica AJAX: /api/asignar/unico]
-                alert(`Equipo ${serie} asignado exitosamente al empleado ${empleadoId}!`);
+            // 1. Chequear si el equipo ya está en el array (por nroserie o id)
+            const existe = equiposAsignados.some(e => e.id === equipoEncontrado.id);
 
-                // Limpiar campos y refrescar
-                document.getElementById('serieEquipo').value = '';
-                document.getElementById('empleadoAsignar').value = '';
-                // Idealmente, refrescar la tabla o la fila afectada
-            } else {
-                alert('Por favor, ingrese la Serie y seleccione un Empleado.');
-            }
-        }
-
-        // --- FUNCIONES DE ASIGNACIÓN MÚLTIPLE ---
-
-        function toggleSelectAll(checkbox) {
-            const checkboxes = document.querySelectorAll('.asset-checkbox:not(:disabled)');
-            checkboxes.forEach(cb => {
-                cb.checked = checkbox.checked;
-                // Simular el cambio para actualizar el estilo
-                checkSelection(cb);
-            });
-            updateMultipleAssignControls();
-        }
-
-        function checkSelection(checkbox) {
-            const row = checkbox.closest('tr');
-            if (checkbox.checked) {
-                row.classList.add('row-selected');
-            } else {
-                row.classList.remove('row-selected');
-            }
-            updateMultipleAssignControls();
-        }
-
-        function updateMultipleAssignControls() {
-            const selectedCheckboxes = document.querySelectorAll('.asset-checkbox:checked');
-            const count = selectedCheckboxes.length;
-            const controls = document.getElementById('multipleAssignControls');
-            const countSpan = document.getElementById('selectedCount');
-
-            countSpan.textContent = count;
-
-            if (count > 0) {
-                controls.style.display = 'block';
-            } else {
-                controls.style.display = 'none';
+            if (existe) {
+                alert("Este equipo ya ha sido agregado a la lista.");
+                return;
             }
 
-            // Actualizar checkbox "Seleccionar Todos"
-            const allAvailableCheckboxes = document.querySelectorAll('.asset-checkbox:not(:disabled)');
-            const selectAll = document.getElementById('selectAll');
+            // 2. Agregar al array
+            equipoEncontrado.idproductcontract = document.getElementById('idproductcontract').value;
+            equiposAsignados.push(equipoEncontrado);
 
-            if (allAvailableCheckboxes.length > 0) {
-                 selectAll.checked = count === allAvailableCheckboxes.length;
-            } else {
-                 selectAll.checked = false; // No hay nada que seleccionar
-            }
+            // 3. Volver a imprimir la lista
+            actualizarListaEquipos();
+
+            // 4. Limpiar búsqueda anterior (opcional)
+            equipoEncontrado = null;
+            document.getElementById('infoEquipoEncontrado').style.display = 'none';
+            document.getElementById('buttonAgregarEquipo').style.display = 'none';
         }
 
-        function asignarEquiposMultiples() {
-            const selectedCheckboxes = document.querySelectorAll('.asset-checkbox:checked');
-            const empleadoId = document.getElementById('empleadoAsignarMultiple').value;
-            const selectedAssetIds = Array.from(selectedCheckboxes).map(cb => cb.closest('tr').getAttribute('data-id'));
+       function actualizarListaEquipos() {
+            const contenedor = document.getElementById('listaEquiposContenedor');
+            if (!contenedor) return;
 
-            if (selectedAssetIds.length > 0 && empleadoId) {
-                console.log(`Asignando IDs [${selectedAssetIds.join(', ')}] al empleado ID ${empleadoId}`);
-                // [Lógica AJAX: /api/asignar/multiples]
+            contenedor.innerHTML = "";
 
-                alert(`${selectedAssetIds.length} equipos asignados al empleado ${empleadoId}.`);
+            if (equiposAsignados.length === 0) {
+                contenedor.innerHTML = `
+                    <div style="text-align:center; padding: 20px; color: #666; font-style: italic;">
+                        No hay equipos asignados.
+                    </div>`;
+                return;
+            }
 
-                // Después de la asignación exitosa:
-                // 1. Desmarcar todos los checkboxes
-                document.getElementById('selectAll').checked = false;
-                selectedCheckboxes.forEach(cb => {
-                    cb.checked = false;
-                    cb.closest('tr').classList.remove('row-selected');
-                    // Idealmente: Recargar o actualizar la fila en la tabla (cambiar estado y asignado a)
+            // Usamos template literals para mayor claridad
+            let tablaHtml = `
+                <table class="table-glass">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Marca</th>
+                            <th>Serie</th>
+                            <th style="text-align:center">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${equiposAsignados.map((eq, index) => `
+                            <tr>
+                                <td>${eq.tipoequipo.tipoequipo}</td>
+                                <td>${eq.marca.marca}</td>
+                                <td><strong>${eq.nroserie}</strong></td>
+                                <td style="text-align:center">
+                                    <button class="btn-icon-sm" onclick="eliminarDeLista(${index})" title="Eliminar">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>`;
+
+            contenedor.innerHTML = tablaHtml;
+        }
+
+        function eliminarDeLista(index) {
+            // Eliminar por índice y refrescar
+            equiposAsignados.splice(index, 1);
+            actualizarListaEquipos();
+        }
+
+        async function asignarEquipos() {
+            // 1. Validaciones previas
+            if (equiposAsignados.length === 0) {
+                alert("No hay equipos en la lista para asignar.");
+                return;
+            }
+
+            idoportunidad = document.getElementById('idoportunidad').value;
+
+            if (!idoportunidad) {
+                alert("Falta el ID de Oportunidad.");
+                return;
+            }
+
+            // 2. Preparar los datos
+            // Extraemos solo los IDs si tu objeto es {idEquipo: 1, tipo: 'Laptop'...}
+            // Si tu array ya es de IDs, puedes usar 'equiposAsignados' directamente.
+            const datosParaEnviar = {
+                idoportunidad: idoportunidad,
+                equipos: equiposAsignados,
+                usuario: "jmiranda"
+            };
+            console.log(JSON.stringify(datosParaEnviar));
+            try {
+                // 3. Realizar el POST
+                const response = await fetch('/api/asignarequipos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(datosParaEnviar)
                 });
 
-                // 2. Limpiar el selector de empleado y actualizar controles
-                document.getElementById('empleadoAsignarMultiple').value = '';
-                updateMultipleAssignControls();
+                const resultado = await response.json();
 
-                // Se sugiere recargar la tabla completa o actualizar las filas afectadas aquí
-            } else {
-                alert('Debe seleccionar al menos un equipo y un empleado para la asignación múltiple.');
+                if (response.ok) {
+                    alert("¡Equipos asignados con éxito!");
+
+                    // 4. Limpiar la lista y actualizar la interfaz
+                    equiposAsignados = [];
+                    actualizarListaEquipos(); // La función que creamos antes
+
+                } else {
+                alert("Error del servidor: " + (resultado.error || "No se pudo completar la acción"));
             }
-        }
 
-        // --- OTRAS FUNCIONES ---
-
-        function liberarEquipo(id) {
-            if (confirm(`¿Está seguro de que desea liberar el equipo ID ${id}?`)) {
-                console.log(`Liberando equipo ID ${id}`);
-                // [Lógica AJAX: /api/liberar/id]
-                alert(`Equipo ${id} liberado y puesto en Disponible.`);
+            } catch (error) {
+            console.error("Error en la petición:", error);
+            alert("Error de conexión al servidor.");
             }
-        }
-
-        function abrirModalAgregar(){
-            // Redirige o abre un modal para agregar un nuevo activo.
-            window.location.href = '/application/agregar-equipo';
-        }
+            }
     </script>
 </body>
 </html>

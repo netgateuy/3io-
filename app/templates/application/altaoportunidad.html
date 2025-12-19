@@ -218,7 +218,7 @@
 }
     </style>
 </head>
-<body>
+<body onload="loadsubpaises(1,1);">
      <aside id="sidebar" class="sidebar">
         <div class="sidebar-header">
             <div class="logo-container">
@@ -313,13 +313,10 @@
                         </option>
                         {% endfor %}
                     </select></div>
-
                     <div class="form-field"><label for="cliNombre">Forma Pago (*)</label>
                     <select id="idFormaPago" name="idFormaPago">
-
                     </select>
                     </div>
-
                  </div>
             </div>
             <div class="glass-card">
@@ -602,7 +599,7 @@
             jsonData["fechaAlta"] = document.getElementById('fechaAlta').value;
             jsonData["fechaInicio"] = document.getElementById('fechaInicio').value;
 
-            console.log(jsonData);
+            console.log( JSON.stringify(jsonData));
 
             fetch('/api/oportunidad', {
               method: 'POST',
@@ -620,7 +617,7 @@
                     id = data["id"];
                     window.location.href = `/application/oportunidad/${id}`;
                 }else{
-                    alert("Error al intentar dar de alta la oportunidad.");
+                    alert("Error al intentar dar de alta la oportunidad." + data["observation"]);
                 }
             })
             .catch(error => {

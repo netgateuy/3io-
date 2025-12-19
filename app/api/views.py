@@ -2,7 +2,7 @@ from flask import request, jsonify
 import base64, re
 from ..models.Contract import Contract
 from ..models.Product import ProductContract, ContractProductFieldValue, ProductFieldPrice, ProductFieldValue, ProductField, Product
-from ..models.Equipo import Equipo, Marca, Modelo, Proveedor, EquipoTipo, EquipoFamilia
+from ..models.Equipo import Equipo, Marca, Modelo, Proveedor, EquipoTipo, EquipoFamilia, EquipoContract
 from ..models.Oportunidad import Oportunidad, EtapaOportunidad, TipoOportunidad, AccionOportunidad, EstadoOportunidad, ArchivoOportunidad
 from ..models.Cliente import Cliente, TipoID
 from ..models.SubPais import SubPais
@@ -92,16 +92,25 @@ def addequipo():
         content = request.json
         equipo = Equipo()
         equipo.altapor = content["altapor"]
-        equipo.fechaalta = content["fechaalta"]
+        equipo.fechaalta = strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        equipo.fechaadquisicion = content["fechaAdquisicion"]
         equipo.idmarca = content["idmarca"]
         equipo.idmodelo = content["idmodelo"]
-        equipo.idfamilia = content["idfamilia"]
+        equipo.idfamilia = 0
         equipo.idtipoequipo = content["idtipoequipo"]
         equipo.nroserie = content["nroserie"]
         equipo.idproveedor = content["idproveedor"]
         equipo.observacion = content["observacion"]
+        equipo.notas = content["notas"]
         db.session.add(equipo)
         db.session.commit()
+
+        return jsonify(
+            id=equipo.idequipo,
+            observation="Equipo dada de alta",
+            error=False,
+            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        )
     except Exception as e:
         return jsonify(
             observation=str(e),
@@ -178,15 +187,78 @@ def addproveedor():
             serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
         )
 
+@api.route('/equipos/tipos', methods=['GET'])
+def equipos_tipos():
+    tipos = EquipoTipo.query.filter_by(visible=1).all()
+    tipos_json = [tipo.to_dict() for tipo in tipos]
+    return jsonify(tipos_json)
+
+@api.route('/equipos/familia', methods=['GET'])
+def equipos_familia():
+    familias = EquipoFamilia.query.filter_by(visible=1).all()
+    familias_json = [familia.to_dict() for familia in familias]
+    return jsonify(familias_json)
+
+@api.route('/marcas', methods=['GET'])
+def marcas():
+    idtipoequipo = request.args.get('idtipoequipo')
+    visible = request.args.get('visible')
+    marcas = Marca.query.filter_by()
+
+    if visible:
+        marcas = marcas.filter_by(visible=visible)
+
+    if idtipoequipo:
+        marcas = marcas.filter_by(idtipoequipo=idtipoequipo)
+
+    marcas = marcas.all()
+
+    marcas_json = [marca.to_dict() for marca in marcas]
+    return jsonify(marcas_json)
+
+
+@api.route('/proveedores', methods=['GET'])
+def proveedores():
+    visible = request.args.get('visible')
+    proveedores = Proveedor.query.filter_by().all()
+
+    if visible:
+        proveedores = proveedores.filter_by(visible=visible)
+
+    proveedores_json = [proveedor.to_dict() for proveedor in proveedores]
+    return jsonify(proveedores_json)
+
+@api.route('/modelos', methods=['GET'])
+def modelos():
+    idtipoequipo = request.args.get('idtipoequipo')
+    idmarca = request.args.get('idmarca')
+    visible = request.args.get('visible')
+    modelos = Modelo.query.filter_by()
+
+    if visible:
+        modelos = modelos.filter_by(visible=visible)
+        
+    if idtipoequipo:
+        modelos = modelos.filter_by(idtipoequipo=idtipoequipo)
+
+    if idmarca:
+        modelos = modelos.filter_by(idMarca=idmarca)
+
+    modelos = modelos.all()
+
+    modelos_json = [modelo.to_dict() for modelo in modelos]
+    return jsonify(modelos_json)
+
 @api.route('/oportunidad',methods=['POST'])
 def addoportunidad():
     try:
         content = request.json
         #Cliente
-        if content["idCliente"] == "0":
+        if content["idCliente"] == 0:
             idCliente = db.session.query(func.max(Cliente.idCliente)).scalar()
             idCliente = idCliente + 1
             cliente = Cliente()
+
             cliente.idPais = content["idPais"]
             cliente.idCliente = idCliente
             cliente.cliNombre = content["cliNombre"]
@@ -205,7 +277,7 @@ def addoportunidad():
             cliente.idTipoPago = content["idTipoPago"]
             cliente.idFormaPago = content["idFormaPago"]
             cliente.eMailAviso = content["eMailAviso"]
-            cliente.FechaAlta = content["FechaAlta"]
+            cliente.FechaAlta = content["fechaAlta"]
             cliente.Contacto = content["Contacto"]
             db.session.add(cliente)
         else:
@@ -240,7 +312,7 @@ def addoportunidad():
         oportunidad.idtipo = content["idtipo"]
         oportunidad.fechaalta = content["fechaAlta"]
         oportunidad.fechainicio = content["fechaInicio"]
-        oportunidad.idcliente = content["idCliente"]
+        oportunidad.idcliente = cliente.idCliente
         oportunidad.responsable = content["responsable"]
         oportunidad.estado = etapa_0.nombre
         db.session.add(oportunidad)
@@ -320,6 +392,7 @@ def addotipoportunidad():
             error="yes",
             serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
         )
+
 
 @api.route('/etapaoportunidad',methods=['POST'])
 def addetapaoportunidad():
@@ -709,7 +782,9 @@ def avanzar_etapa(idoportunidad):
             if not response.status_code == 200:
                 return jsonify(
                     observation="Error al intentar avanzar la etapa.",
+                    uri=etapa.uri,
                     error=False,
+                    json=oportunidad,
                     serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
                 ), 500
 
@@ -877,25 +952,39 @@ def obtener_agenda_rango():
     })
 
 
-@api.route('/equipos/serie/<string:nro_serie>', methods=['GET'])
+@api.route('/equipo/serie/<string:nro_serie>', methods=['GET'])
 def buscar_equipo_por_serie(nro_serie):
     """
     Busca un equipo por su número de serie (nroserie)
     y devuelve el resultado en formato JSON.
     """
     try:
-        equipo = Equipo.query.filter_by(nroserie=nro_serie).one_or_none()
+        fechaBaja = request.args.get('fechaBaja')
+        fechaAsignado = request.args.get('fechaAsignado')
+
+        equipo = Equipo.query.filter_by(nroserie=nro_serie)
+        equipo = equipo.filter_by(fechabaja=fechaBaja)
+        equipo = equipo.filter_by(fechaasignado=fechaAsignado)
+
+        equipo = equipo.one_or_none()
 
         if equipo is None:
             return jsonify({
+                "error" : True,
                 "mensaje": f"Equipo con serie '{nro_serie}' no encontrado."
             }), 404
-
-        equipo = {}
-        equipo["id"] = 1234
+        tipoequipo = EquipoTipo.query.filter_by(idTipoEquipo=equipo.idtipoequipo).first()
+        marca = Marca.query.filter_by(idMarca=equipo.idmarca,idtipoequipo=equipo.idtipoequipo).first()
+        modelo = Modelo.query.filter_by(idtipoequipo=equipo.idtipoequipo, idMarca=equipo.idmarca).first()
+        equipo_json = {}
+        equipo_json["id"] = equipo.idequipo
+        equipo_json["nroserie"] = equipo.nroserie
+        equipo_json["tipoequipo"] = {"id": tipoequipo.idTipoEquipo, "tipoequipo": tipoequipo.descripcion}
+        equipo_json["marca"] = {"id": marca.idMarca, "marca": marca.marca}
+        equipo_json["modelo"] = {"id": modelo.idmodelo, "modelo": modelo.modelo}
 
         # 4. Devolver la respuesta JSON con código 200 (OK)
-        return jsonify(equipo), 200
+        return jsonify(equipo_json), 200
 
     except Exception as e:
         # Manejo de otros posibles errores (e.g., error de DB)
@@ -904,3 +993,44 @@ def buscar_equipo_por_serie(nro_serie):
             "mensaje": "Ocurrió un error interno del servidor.",
             "error": str(e)
         }), 500
+
+
+@api.route('/asignarequipos', methods=['POST'])
+def asignar_equipos_contract():
+    data = request.get_json()
+    # Extraer encabezados
+    id_oportunidad = data.get('idoportunidad')
+    lista_equipos = data.get('equipos')
+    usuario_alta = data.get('usuario', 'Sistema')
+
+    # Validación básica
+    if not id_oportunidad or not lista_equipos:
+        return jsonify({"error": "Faltan datos obligatorios"}), 400
+
+    try:
+        for equipo in lista_equipos:
+            # Crear nueva instancia del modelo
+            nuevo_registro = EquipoContract(
+                idEquipo=equipo["id"],
+                idProductContract=equipo["idproductcontract"],
+                idOportunidad=id_oportunidad,
+                fechaalta=datetime.now(),
+                altapor=usuario_alta
+            )
+            db.session.add(nuevo_registro)
+
+            equipo_d = Equipo.query.filter_by(idequipo=equipo["id"]).first()
+            equipo_d.fechaasignado = datetime.now()
+            db.session.add(equipo_d)
+
+        # Guardar todos los cambios en la base de datos
+        db.session.commit()
+
+        return jsonify({
+            "status": "success",
+            "message": f"{len(lista_equipos)} equipos asignados correctamente"
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()  # Si algo falla, cancelamos todo
+        return jsonify({"error": str(e)}), 500

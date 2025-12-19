@@ -60,6 +60,8 @@ def enviar_contrato():
     return ""
 
 
+
+
 def generar_html_correo(content,total_dolares,total_pesos,cliente_bamboo):
     html_renderizado = render_template('netgate/mailing.html', content=content,total_dolares=total_dolares,total_pesos=total_pesos,cliente_bamboo=cliente_bamboo)
     return html_renderizado
@@ -76,7 +78,11 @@ def login_gns():
 
 def get_orden_gns(oportunidad, idmoneda):
     payload = {}
-    payload["nombre"] = oportunidad["cliente"]["clirazon"] + ' ' + oportunidad["cliente"]["clinombre"] + ' ' + oportunidad["cliente"]["cliapellido"]
+    cli_razon = ""
+    if oportunidad["cliente"]["clirazon"]:
+        cli_razon = oportunidad["cliente"]["clirazon"]
+
+    payload["nombre"] = cli_razon + ' ' + oportunidad["cliente"]["clinombre"] + ' ' + oportunidad["cliente"]["cliapellido"]
     payload["telefono"] = oportunidad["cliente"]["telefono"]
     payload["email"] = oportunidad["cliente"]["emailaviso"]
     payload["idTipoDocumento"] = oportunidad["cliente"]["tipodocumento"]["idtipoidexterno"]
@@ -121,7 +127,6 @@ def procesar_pago():
 
         #Hay que cargar las facturas en gns
         token_gns = login_gns()
-
         orden_dolares = get_orden_gns(oportunidad, "2")
         orden_pesos = get_orden_gns(oportunidad, "1")
 
@@ -228,3 +233,6 @@ def iniciar_pago():
             error=False,
             serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
         ),500
+
+
+    

@@ -97,3 +97,9 @@ class ClientProductFieldValue(db.Model):
     idProductField = db.Column(db.Integer)
     idContract = db.Column(db.Integer)
     value = db.Column(db.Text, unique=False)
+
+class ProductEquipment(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    idclient  = db.Column(db.Integer, primary_key=True)
+    idproducto = db.Column(db.Integer, primary_key=True)
+    idequipo = db.Column(db.Integer, primary_key=True)

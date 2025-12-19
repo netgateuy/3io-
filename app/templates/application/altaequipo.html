@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Inventario - Alta de Equipo</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        /* --- 1. VARIABLES Y CONFIGURACIÓN GLOBAL (SIN CAMBIOS) --- */
+        :root {
+            --sidebar-width: 260px;
+            --sidebar-closed-width: 80px;
+            --glass-bg-light: rgba(255, 255, 255, 0.8);
+            --glass-bg-dark: rgba(20, 37, 60, 0.85);
+            --primary-blue: #007bff;
+            --font-dark: #1e3a5f;
+            --font-light: #ffffff;
+            --shadow-soft: rgba(0, 0, 0, 0.15);
+            --transition-speed: 0.3s;
+
+            /* Colores de Estado de Inventario */
+            --status-available: #28a745; /* Verde */
+            --status-assigned: #ffc107;  /* Amarillo */
+            --status-repair: #007bff; /* Azul */
+            --status-retired: #dc3545; /* Rojo */
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #74a0e9 0%, #1f4788 100%);
+            display: flex;
+            min-height: 100vh;
+            color: var(--font-dark);
+            overflow-x: hidden;
+        }
+
+        /* --- 2. LAYOUT PRINCIPAL (Sidebar & Content) (SIN CAMBIOS) --- */
+        .sidebar { width: var(--sidebar-width); background-color: var(--glass-bg-dark); color: white; height: 100vh; position: fixed; overflow-x: hidden; padding-top: 20px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-right: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 2px 0 15px rgba(0, 0, 0, 0.3); z-index: 100; transition: width var(--transition-speed) ease; display: flex; flex-direction: column; }
+        .sidebar.closed { width: var(--sidebar-closed-width); }
+
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; padding: 0 20px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); margin-bottom: 15px; width: var(--sidebar-width); padding-right: 15px; transition: width var(--transition-speed) ease; }
+        .sidebar.closed .sidebar-header { width: var(--sidebar-closed-width); justify-content: center; padding: 0 0 20px 0; }
+        .sidebar.closed .logo-container { display: none; }
+
+        .logo-container { background-color: rgba(255,255,255,0.2); border-radius: 8px; padding: 5px; display: flex; align-items: center; justify-content: center; }
+        .logo-container img { max-height: 30px; width: auto; }
+
+        .toggle-btn { background: none; color: white; border: 1px solid rgba(255, 255, 255, 0.4); padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 1.2em; display: flex; align-items: center; justify-content: center; transition: transform var(--transition-speed) ease; }
+
+        .menu ul { list-style: none; }
+        .menu li a { display: flex; align-items: center; padding: 12px 15px; text-decoration: none; color: #dbe4f1; border-radius: 8px; margin: 5px 10px; line-height: 1.2; transition: all 0.2s; }
+        .menu li a:hover { background-color: rgba(255,255,255,0.1); }
+        .menu li a .bi { font-size: 1.3em; margin-right: 15px; width: 25px; text-align: center; line-height: 0; }
+        .sidebar.closed .menu li a span { display: none; }
+        .sidebar.closed .menu li a { justify-content: center; padding: 12px 0; margin: 5px 15px; }
+        .menu li a.active { background-color: var(--primary-blue); box-shadow: 0 2px 8px rgba(0, 123, 255, 0.5); color: white; }
+
+        .content { margin-left: var(--sidebar-width); flex-grow: 1; padding: 25px 30px; width: calc(100% - var(--sidebar-width)); transition: margin-left var(--transition-speed) ease, width var(--transition-speed) ease; }
+        .content.shifted { margin-left: var(--sidebar-closed-width); width: calc(100% - var(--sidebar-closed-width)); }
+
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; border-radius: 12px; background-color: var(--glass-bg-light); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 4px 30px var(--shadow-soft); margin-bottom: 30px; }
+        .navbar input[type="text"] { padding: 10px 15px; width: 350px; background-color: rgba(255, 255, 255, 1); border: none; border-radius: 20px; font-size: 0.9em; color: var(--font-dark); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); }
+        .user-info span { color: var(--font-dark); font-weight: 600; }
+
+        .action-button { padding: 10px 20px; border: none; border-radius: 8px; font-size: 1em; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background-color: var(--primary-blue); color: white; box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3); }
+        .btn-primary:hover { background-color: #0056b3; transform: translateY(-1px); }
+
+        h1 { color: var(--font-light); text-shadow: 0 1px 2px var(--shadow-soft); margin-bottom: 0; font-size: 1.8em; }
+
+        /* --- 3. ESTILOS DE FORMULARIO DE ALTA --- */
+
+        .form-card {
+            background-color: var(--glass-bg-light);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 12px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 30px var(--shadow-soft);
+        }
+
+        .form-card h2 {
+            margin-top: 0;
+            color: var(--primary-blue);
+            margin-bottom: 25px;
+            font-size: 1.5em;
+            border-bottom: 2px solid rgba(0, 123, 255, 0.1);
+            padding-bottom: 10px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            flex: 1; /* Distribución uniforme */
+            margin-bottom: 10px;
+        }
+
+        .form-group.full-width {
+            flex: 100%;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.95em;
+            color: var(--font-dark);
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group input[type="date"],
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            background-color: white;
+            font-size: 0.9em;
+            color: var(--font-dark);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--primary-blue);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .actions-footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+        }
+
+        .btn-cancel {
+            background-color: #6c757d;
+            color: white;
+        }
+        .btn-cancel:hover {
+            background-color: #5a6268;
+            transform: translateY(-1px);
+        }
+
+        .status-options {
+            display: flex;
+            gap: 15px;
+        }
+
+        .status-option input[type="radio"] {
+            display: none;
+        }
+
+        .status-option label {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 700;
+            font-size: 0.85em;
+            border: 2px solid transparent;
+        }
+
+        /* Estilos de los estados basados en el color de las variables */
+        .status-available label { background-color: rgba(40, 167, 69, 0.15); color: var(--status-available); }
+        .status-assigned label { background-color: rgba(255, 193, 7, 0.2); color: #d39e00; }
+        .status-repair label { background-color: rgba(0, 123, 255, 0.15); color: var(--status-repair); }
+        .status-retired label { background-color: rgba(220, 53, 69, 0.15); color: var(--status-retired); }
+
+        /* Estilo para el estado seleccionado */
+        .status-available input:checked + label { border-color: var(--status-available); background-color: rgba(40, 167, 69, 0.3); }
+        .status-assigned input:checked + label { border-color: #d39e00; background-color: rgba(255, 193, 7, 0.4); }
+        .status-repair input:checked + label { border-color: var(--status-repair); background-color: rgba(0, 123, 255, 0.4); }
+        .status-retired input:checked + label { border-color: var(--status-retired); background-color: rgba(220, 53, 69, 0.4); }
+
+        .status-option label i {
+            margin-right: 5px;
+        }
+
+    </style>
+</head>
+<body>
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-container">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/PlaceholderLC.svg/1024px-PlaceholderLC.svg.png" alt="CRM Logo">
+            </div>
+            <button id="toggleBtn" class="toggle-btn" title="Plegar/Desplegar Menú">&#9776;</button>
+        </div>
+        <nav class="menu">
+            <ul>
+                <li><a href="#"><i class="bi bi-speedometer2"></i> <span>Dashboard</span></a></li>
+                <li><a href="#"><i class="bi bi-cpu"></i> <span>Inventario Equipos</span></a></li>
+                <li class="active"><a href="#" class="active"><i class="bi bi-person-plus"></i> <span>Alta de Equipo</span></a></li>
+                <li><a href="#"><i class="bi bi-file-earmark-text"></i> <span>Historial</span></a></li>
+                <li><a href="#"><i class="bi bi-graph-up-arrow"></i> <span>Reportes</span></a></li>
+                <hr style="margin: 15px 20px; border-color: rgba(255, 255, 255, 0.2);">
+                <li><a href="#"><i class="bi bi-gear"></i> <span>Configuración</span></a></li>
+                <li><a href="#"><i class="bi bi-box-arrow-right"></i> <span>Cerrar Sesión</span></a></li>
+            </ul>
+        </nav>
+    </aside>
+    <main id="content" class="content">
+        <header class="navbar">
+            <h1><i class="bi bi-plus-circle-fill"></i> Registro de Nuevo Equipo</h1>
+            <div class="user-info">
+                <span>Hola, Juan Miranda</span>
+            </div>
+        </header>
+
+        <div class="form-card">
+            <h2>Datos Generales del Activo</h2>
+            <form id="altaEquipoForm" onsubmit="return handleAltaEquipo(event)">
+                <input type="hidden" name="altapor" value="3iO">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="nroserie">Número de Serie (SN)</label>
+                        <input type="text" id="nroserie" name="nroserie" placeholder="Ingrese el SN único del equipo" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="idtipoequipo">Tipo de Equipo</label>
+                        <select id="idtipoequipo" name="idtipoequipo" required onchange="cargarMarcasPorTipo()">
+                            <option value="">Seleccione el tipo...</option>
+                            {% for tipo in tiposquipo %}
+                                <option value="{{ tipo.idTipoEquipo }}">{{ tipo.descripcion }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="idmarca">Marca</label>
+                        <select id="idmarca" name="idmarca" required onchange="cargarModelos()">
+                            <option value="">Cargando marcas...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="idmodelo">Modelo Específico</label>
+                        <select id="idmodelo" name="idmodelo" required>
+                            <option value="">Cargando modelos...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="fechaAdquisicion">Fecha de Adquisición</label>
+                        <input type="date" id="fechaAdquisicion" name="fechaAdquisicion" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="idproveedor">Proveedor</label>
+                        <select id="idproveedor" name="idproveedor" required>
+                            {% for proveedor in proveedores %}
+                                <option value="{{ proveedor.idProveedor }}">{{ proveedor.proveedor }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="notas">Especificaciones (RAM, CPU, Disco, etc.)</label>
+                        <textarea id="notas" name="notas" rows="4" placeholder="Ej: i7, 16GB RAM, 512GB SSD"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="observacion">Observaciones (Factura, Ubicación inicial)</label>
+                        <textarea id="observacion" name="observacion" rows="4" placeholder="Notas internas relevantes"></textarea>
+                    </div>
+                </div>
+                <div class="actions-footer">
+                    <button type="button" class="action-button btn-cancel" onclick="document.getElementById('altaEquipoForm').reset();">
+                        <i class="bi bi-x-circle"></i> Limpiar Formulario
+                    </button>
+                    <button type="submit" class="action-button btn-primary">
+                        <i class="bi bi-save"></i> Registrar Equipo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Inicializar Sidebar
+            const toggleBtn = document.getElementById('toggleBtn');
+            const sidebar = document.getElementById('sidebar');
+            const content = document.getElementById('content');
+            if(toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    sidebar.classList.toggle('closed');
+                    content.classList.toggle('shifted');
+                });
+            }
+
+        });
+
+        function handleAltaEquipo(event) {
+            event.preventDefault(); // Evita el envío del formulario tradicional
+
+            const form = document.getElementById('altaEquipoForm');
+            const formData = new FormData(form);
+            const data = {};
+
+            // Convertir FormData a objeto para la consola
+            formData.forEach((value, key) => {
+                data[key] = value;
+            });
+
+            console.log('Datos del Nuevo Equipo:', JSON.stringify(data));
+
+            // Validación mínima (puedes agregar más validación aquí)
+            if (data.nroserie && data.idtipoequipo && data.idmarca && data.idmodelo) {
+                // Aquí iría la lógica AJAX para enviar 'data' al servidor
+                fetch('/api/equipo', {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                 if (!result.error) {
+                    alert(`Equipo ${result.id} registrado exitosamente!`);
+                    //Deberiamos redirigir al usuario a el listado de equipos
+                 } else {
+                     alert(`Error al registrar: ${result.message}`);
+                 }
+                })
+                .catch(error => {
+                 console.error('Error de red:', error);
+                 alert('Ocurrió un error al intentar registrar el equipo.');
+                });
+                form.reset();
+            } else {
+                alert('Por favor, complete todos los campos obligatorios (Serie, Tipo, Marca, Modelo).');
+            }
+
+            return false;
+        }
+
+        function cargarMarcasPorTipo() {
+            // 1. Obtener el valor seleccionado del tipo de artículo
+            var idtipoequipo = document.getElementById('idtipoequipo').value;
+            var marcaSelect = document.getElementById('idmarca');
+
+            // Limpiar las opciones anteriores y añadir la opción por defecto
+            marcaSelect.innerHTML = '<option value="">Cargando marcas...</option>';
+
+            // Si no se ha seleccionado un tipo válido, solo limpiar y salir
+            if (idtipoequipo === "" || idtipoequipo === "0") {
+                marcaSelect.innerHTML = '<option value="">Seleccione una marca...</option>';
+                return;
+            }
+
+            // 2. Realizar la solicitud AJAX
+            fetch('/api/marcas?idtipoequipo=' + idtipoequipo)
+                .then(response => {
+                    if (!response.ok) {
+                        // Manejo de errores de HTTP
+                        throw new Error('Error al cargar las marcas: ' + response.statusText);
+                    }
+                    return response.json(); // Asume que el servidor devuelve un JSON
+                })
+                .then(data => {
+                    // 3. Procesar y llenar el select de marcas
+
+                    // Limpiar las opciones anteriores
+                    marcaSelect.innerHTML = '';
+
+                    // Agregar la opción por defecto
+                    var defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = 'Cargando marcas...';
+                    marcaSelect.appendChild(defaultOption);
+
+                    // Agregar las nuevas opciones
+                    data.forEach(function(marca) {
+                        var option = document.createElement('option');
+                        // Asume que la respuesta JSON tiene propiedades 'id' y 'descripcion'
+                        option.value = marca.idmarca;
+                        option.textContent = marca.marca;
+                        marcaSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    // 4. Manejo de errores (por ejemplo, fallo de red)
+                    console.error('Hubo un problema con la solicitud Fetch:', error);
+                    marcaSelect.innerHTML = '<option value="">Error al cargar</option>';
+                });
+        }
+
+         function cargarModelos() {
+            // 1. Obtener el valor seleccionado del tipo de artículo
+            var idtipoequipo = document.getElementById('idtipoequipo').value;
+            var idmarca = document.getElementById('idmarca').value;
+            var modelosSelect = document.getElementById('idmodelo');
+
+            // Limpiar las opciones anteriores y añadir la opción por defecto
+            modelosSelect.innerHTML = '<option value="">Cargando modelos...</option>';
+
+            // Si no se ha seleccionado un tipo válido, solo limpiar y salir
+            if (idtipoequipo === "" || idtipoequipo === "0" || idmarca === "" || idmarca === "0") {
+                marcaSelect.innerHTML = '<option value="">Cargando modelos...</option>';
+                return;
+            }
+
+            // 2. Realizar la solicitud AJAX
+            fetch('/api/modelos?idtipoequipo=' + idtipoequipo + "&idmarca=" + idmarca)
+                .then(response => {
+                    if (!response.ok) {
+                        // Manejo de errores de HTTP
+                        throw new Error('Error al cargar las modelos: ' + response.statusText);
+                    }
+                    return response.json(); // Asume que el servidor devuelve un JSON
+                })
+                .then(data => {
+                    // 3. Procesar y llenar el select de marcas
+
+                    // Limpiar las opciones anteriores
+                    modelosSelect.innerHTML = '';
+
+                    // Agregar la opción por defecto
+                    var defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = 'Seleccione un modelo...';
+                    modelosSelect.appendChild(defaultOption);
+
+                    // Agregar las nuevas opciones
+                    data.forEach(function(modelo) {
+                        var option = document.createElement('option');
+                        // Asume que la respuesta JSON tiene propiedades 'id' y 'descripcion'
+                        option.value = modelo.idmodelo;
+                        option.textContent = modelo.modelo;
+                        modelosSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    // 4. Manejo de errores (por ejemplo, fallo de red)
+                    console.error('Hubo un problema con la solicitud Fetch:', error);
+                    marcaSelect.innerHTML = '<option value="">Error al cargar</option>';
+                });
+        }
+    </script>
+</body>
+</html>

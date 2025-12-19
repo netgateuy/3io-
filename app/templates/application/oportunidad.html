@@ -896,14 +896,12 @@ async function ejecutarAvance() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
-
         }
     })
     .then(async response => {
         if (response.ok) {
             const data = await response.json();
             if (data.redirige && data.uriredireccion.length > 0) {
-                alert(data.uriredireccion + "?idoportunidad=" + oportunidadIdParaAvanzar);
                 window.location.href = data.uriredireccion + "?idoportunidad=" + oportunidadIdParaAvanzar ;
             } else {
                 window.location.reload();
