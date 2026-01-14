@@ -233,6 +233,3 @@ def iniciar_pago():
             error=False,
             serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
         ),500
-
-
-    

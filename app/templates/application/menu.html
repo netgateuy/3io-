@@ -1,0 +1,75 @@
+<aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-container">
+                <img src="/static/img/3ioplus.png"
+                     alt="CRM Logo"
+                     title="Tu Logo PNG">
+            </div>
+
+            <button id="toggleBtn" class="toggle-btn" title="Plegar/Desplegar Menú">
+                &#9776;
+            </button>
+        </div>
+
+        <nav class="menu">
+            <ul>
+                <li><a href="/application/dashboard" class="active">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Dashboard</span>
+                </a></li>
+                <li><a href="/application/clientes">
+                    <i class="bi bi-people"></i>
+                    <span>Clientes</span>
+                </a></li>
+                <li><a href="/application/oportunidades">
+                    <i class="bi bi-bag-check"></i>
+                    <span>Oportunidades</span>
+                </a></li>
+                <li><a href="/application/agenda">
+                    <i class="bi bi-calendar-check"></i>
+                    <span>Agenda</span>
+                </a></li>
+                <li><a href="/application/reportes">
+                    <i class="bi bi-graph-up-arrow"></i>
+                    <span>Reportes</span>
+                </a></li>
+                <hr style="margin: 15px 20px; border-color: rgba(255, 255, 255, 0.2);">
+                <li><a href="/application/configuracion">
+                    <i class="bi bi-gear"></i>
+                    <span>Configuración</span>
+                </a></li>
+                <li><a href="#" onclick="logout()">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Cerrar Sesión</span>
+                </a></li>
+            </ul>
+        </nav>
+    </aside>
+
+<script>
+    async function logout() {
+    const token = localStorage.getItem('access_token');
+
+    try {
+        const response = await fetch("/api/logout", {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            console.log("Sesión invalidada en el servidor");
+        } else {
+            console.error("Error al invalidar el token en el servidor");
+        }
+    } catch (error) {
+        console.error("Error de red:", error);
+    } finally {
+        // IMPORTANTE: Siempre limpiar el cliente y redirigir,
+        // incluso si el servidor falla (el token expirará igual)
+        localStorage.removeItem("token");
+        window.location.href = "/application/login";
+    }
+}
+</script>

@@ -1,5 +1,6 @@
 from flask_login import UserMixin
 from app import db
+import hashlib
 from app import db, login_manager
 
 class User(UserMixin,db.Model):
@@ -44,6 +45,7 @@ class User(UserMixin,db.Model):
         Check if hashed password matches actual password
         """
         """hashlib.md5(password).hexdigest()"""
+        password = password + "20eTagteN26"
         return hashlib.md5(password.encode("utf")).hexdigest() == self.password_hash
 
     def __repr__(self):
@@ -55,10 +57,6 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 class Role(db.Model):
-    """
-    Create a Role table
-    """
-
     __tablename__ = 'roles'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -69,3 +67,8 @@ class Role(db.Model):
 
     def __repr__(self):
         return '<Role: {}>'.format(self.name)
+
+class TokenBlocklist(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    jti = db.Column(db.String(36), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, nullable=False)

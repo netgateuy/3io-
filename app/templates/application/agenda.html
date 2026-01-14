@@ -221,27 +221,7 @@
     </style>
 </head>
 <body>
-    <aside id="sidebar" class="sidebar">
-        <div class="sidebar-header">
-            <div class="logo-container">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/PlaceholderLC.svg/1024px-PlaceholderLC.svg.png" alt="CRM Logo">
-            </div>
-            <button id="toggleBtn" class="toggle-btn" title="Plegar/Desplegar Menú">&#9776;</button>
-        </div>
-        <nav class="menu">
-            <ul>
-                <li><a href="#"><i class="bi bi-speedometer2"></i> <span>Dashboard</span></a></li>
-                <li><a href="#"><i class="bi bi-people"></i> <span>Clientes</span></a></li>
-                <li><a href="#"><i class="bi bi-file-earmark-text"></i> <span>Contratos</span></a></li>
-                <li><a href="#"><i class="bi bi-bag-check"></i> <span>Oportunidades</span></a></li>
-                <li class="active"><a href="#" class="active"><i class="bi bi-calendar-check"></i> <span>Tareas y Agenda</span></a></li>
-                <li><a href="#"><i class="bi bi-graph-up-arrow"></i> <span>Reportes</span></a></li>
-                <hr style="margin: 15px 20px; border-color: rgba(255, 255, 255, 0.2);">
-                <li><a href="#"><i class="bi bi-gear"></i> <span>Configuración</span></a></li>
-                <li><a href="#"><i class="bi bi-box-arrow-right"></i> <span>Cerrar Sesión</span></a></li>
-            </ul>
-        </nav>
-    </aside>
+   {% include '/application/menu.html' %}
     <main id="content" class="content">
         <header class="navbar">
             <input type="text" placeholder="Buscar visita, cliente o dirección...">
@@ -249,14 +229,14 @@
                 <span>Hola, Juan Miranda</span>
             </div>
         </header>
-        <!--
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
             <h1><i class="bi bi-calendar-week"></i> Agenda</h1>
             <button class="action-button btn-add" onclick="agendar()">
                 <i class="bi bi-plus-lg"></i> Agendar
             </button>
-        </div>-->
-
+        </div>
+        <br>
+        <br>
         <div class="date-control-bar">
             <button class="btn-nav-date" onclick="cambiarFecha(-1)"><i class="bi bi-chevron-left"></i></button>
 
@@ -388,10 +368,13 @@
         }
 
         async function obtenerEventos(fechaISO) {
+            const token = localStorage.getItem('access_token');
             const url = `/api/agenda?fecha=${fechaISO}`;
             try {
                 // 1. Realiza la solicitud GET
-                const response = await fetch(url);
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
 
                 // 2. Verifica si la respuesta HTTP es exitosa (código 200-299)
                 if (!response.ok) {

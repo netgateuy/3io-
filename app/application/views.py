@@ -1,26 +1,90 @@
 from ..models.Contract import Contract
-from ..models.Product import Product,ProductField, ProductFieldValue, ProductContract
+from flask import request, jsonify
+from time import gmtime, strftime
+from ..models.Product import Product, ProductField, ProductFieldValue, ProductContract, ProductClient, ClientProductFieldValue
 from ..models.Pais import Pais
 from ..models.SubPais import SubPais
+from ..models.Ciudad import Ciudad
 from ..models.TipoPago import TipoPago
+from ..models.FormaPago import FormaPago
 from ..models.Cliente import TipoID, Cliente
 from ..models.Moneda import Moneda
 from ..models.Vendedor import Vendedor
 from ..models.User import User
 from ..models.Agenda import Agenda, TipoAgenda
 from ..models.Equipo import EquipoTipo, Proveedor
+from ..models.Sucursal import Sucursal
 from ..models.Oportunidad import TipoOportunidad, Oportunidad, EstadoOportunidad, TipoAccion, AccionOportunidad, ArchivoOportunidad, TipoArchivo
+from ..models.Reclamo import Reclamo, TipoReclamo, Prioridades
 from . import application
 from app import db
-from flask import render_template, abort, Response, request
+from flask import render_template, abort, Response, request, session
+from sqlalchemy import func
 import mimetypes
+from datetime import datetime
+from sqlalchemy import or_
 
 @application.route('/')
+@application.route('/dashboard')
 def index():
     try:
-        return render_template('/application/index.html')
+        oportunidades_abiertas = db.session.query(func.count(Oportunidad.id)).filter(
+            Oportunidad.responsable == session['user_id'] ,
+            Oportunidad.fechafin == None
+        ).scalar()
+        return render_template('/application/index.html',oportunidades_abiertas=oportunidades_abiertas)
     except Exception as e:
         return str(e)
+
+@application.route('/login')
+def login():
+    try:
+        return render_template('/application/login.html')
+    except Exception as e:
+        return str(e)
+
+@application.route('/clientes')
+def clientes():
+    try:
+        sucursales = Sucursal.query.filter_by(visible=1).all()
+        return render_template('/application/clientes.html',sucursales=sucursales)
+    except Exception as e:
+        return str(e)
+
+@application.route('/reclamos')
+def reclamos():
+    try:
+        tiposReclamos = TipoReclamo.query.filter_by(visible=1).all()
+        prioridades = Prioridades.query.all()
+        return render_template('/application/reclamos.html',tiposReclamos=tiposReclamos,prioridades=prioridades)
+    except Exception as e:
+        return str(e)
+
+@application.route('/cliente/<idcliente>')
+def cliente(idcliente):
+    try:
+        cliente = Cliente.query.filter_by(idCliente=idcliente).first()
+        monedas = Moneda.query.filter_by(visible=1).all()
+        productos_filtrados = Product.query.filter_by(visible=True).all()
+        return render_template('/application/cliente.html',cliente=cliente,productos_filtrados=productos_filtrados,monedas=monedas)
+    except Exception as e:
+        return str(e)
+
+@application.route('/editar-cliente/<idcliente>')
+def editarcliente(idcliente):
+    try:
+        cliente = Cliente.query.filter_by(idCliente=idcliente).first()
+        paises = Pais.query.all()
+        subpaises = SubPais.query.filter_by(idPais=cliente.idPais).all()
+        ciudades = Ciudad.query.filter_by(idPais=cliente.idPais,idSubPais=cliente.idSubPais).all()
+        tipospago = TipoPago.query.all()
+        tipoids = TipoID.query.filter_by(visible=1).all()
+        formaspago = FormaPago.query.filter_by(idTipoPago=cliente.idTipoPago).all()
+        vendedores = Vendedor.query.all()
+        return render_template('/application/editar-cliente.html',cliente=cliente,paises=paises,subpaises=subpaises,ciudades=ciudades,tipospago=tipospago,formaspago=formaspago,vendedores=vendedores,tipoids=tipoids)
+    except Exception as e:
+        return str(e)
+
 
 @application.route('/alta-contrato/<idoportunidad>')
 def nuevocontrato(idoportunidad):
@@ -75,7 +139,6 @@ def agendar():
     if id_oportunidad:
         #Obtenemos la oportunidad
         oportunidad = Oportunidad.query.filter_by(id=id_oportunidad).first()
-
         cliente = Cliente.query.filter_by(idCliente=oportunidad.idcliente).first()
     else:
         cliente = Cliente.query.filter_by(idCliente=id_cliente).first()
@@ -154,6 +217,33 @@ def dinamicform(id):
     except Exception as e:
         return str(e)
 
+@application.route('/dinamic-form/<id>/<idproduct>')
+def dinamicformproduct(id,idproduct):
+    try:
+        campos_dinamicos = (
+            db.session.query(ProductField, ClientProductFieldValue)
+            .join(ClientProductFieldValue, (ProductField.id == ClientProductFieldValue.idProductField) &
+                  (ProductField.id == ClientProductFieldValue.idProductField) &
+                  (ClientProductFieldValue.idProductClient == idproduct)
+                  )
+            .filter(ProductField.idProduct==id,ProductField.visible==True)
+            .order_by(ProductField.order)
+            .all()
+        )
+
+        for campo, value in campos_dinamicos:
+            if campo.type == 'COMBO':
+                # Llamar al método de clase para obtener la lista de strings
+                valores = ProductFieldValue.get_combo_values(
+                    producto_id=campo.idProduct,  # Usando el ID del producto
+                    field_id=campo.id  # Usando el ID del campo actual
+                )
+                # Adjuntar la lista de strings al objeto campo para Jinja
+                campo.opciones_combo = valores
+        return render_template('/application/dinamicformvalue.html',campos=campos_dinamicos)
+    except Exception as e:
+        return str(e)
+
 @application.route("/archivo-oportunidad/<int:idoportunidad>/<int:idarchivo>")
 def ver_archivo(idoportunidad, idarchivo):
     archivo = (
@@ -178,3 +268,27 @@ def ver_archivo(idoportunidad, idarchivo):
             "Content-Disposition": f"inline; filename={archivo.filename}"
         }
     )
+
+@application.route('/alta-productos', methods=["POST"])
+def alta_productos():
+    try:
+        content = request.json
+        # Hay que migrar los productos a la ficha del cliente
+        for contrato in content['contratos']:
+            productos = contrato["productos"]
+            for p in productos:
+                product = ProductClient()
+                product.idclient = p["idclient"]
+                product.idproduct = p["idproduct"]
+                product.idmoneda = p["idmoneda"]
+                product.importe = p["importe"]
+                db.session.add(product)
+
+        db.session.commit()
+
+    except Exception as e:
+        return jsonify(
+            observation="Archivo dado de alta correctamente.",
+            error=False,
+            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        ), 500

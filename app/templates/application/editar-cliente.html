@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Cliente | CRM Glass</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --sidebar-width: 260px;
+            --sidebar-closed-width: 80px;
+            --glass-bg-light: rgba(255, 255, 255, 0.8);
+            --glass-bg-dark: rgba(20, 37, 60, 0.85);
+            --primary-blue: #007bff;
+            --font-dark: #1e3a5f;
+            --font-light: #ffffff;
+            --shadow-soft: rgba(0, 0, 0, 0.15);
+            --transition-speed: 0.3s;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'SF Pro Display', -apple-system, sans-serif;
+            background: linear-gradient(135deg, #74a0e9 0%, #1f4788 100%);
+            background-attachment: fixed;
+            display: flex;
+            min-height: 100vh;
+            color: var(--font-dark);
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--glass-bg-dark);
+            color: white;
+            height: 100vh;
+            position: fixed;
+            overflow-x: hidden;
+            padding-top: 20px;
+            backdrop-filter: blur(8px);
+            border-right: 1px solid rgba(255, 255, 255, 0.15);
+            z-index: 100;
+            transition: width var(--transition-speed) ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar.closed { width: var(--sidebar-closed-width); }
+
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .sidebar.closed .logo-container { display: none; }
+
+        .menu ul { list-style: none; margin-top: 15px; }
+        .menu li a {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            text-decoration: none;
+            color: #dbe4f1;
+            border-radius: 8px;
+            margin: 5px 10px;
+            transition: 0.2s;
+        }
+        .menu li a .bi { font-size: 1.3em; margin-right: 15px; width: 25px; text-align: center; }
+        .sidebar.closed .menu li a span { display: none; }
+        .menu li a.active { background-color: var(--primary-blue); box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3); }
+        .menu li a:hover:not(.active) { background: rgba(255,255,255,0.1); }
+
+        /* --- CONTENT AREA --- */
+        .content {
+            margin-left: var(--sidebar-width);
+            flex-grow: 1;
+            padding: 25px 30px;
+            width: calc(100% - var(--sidebar-width));
+            transition: margin-left var(--transition-speed) ease;
+        }
+        .content.shifted { margin-left: var(--sidebar-closed-width); width: calc(100% - var(--sidebar-closed-width)); }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 25px;
+            border-radius: 12px;
+            background-color: var(--glass-bg-light);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            margin-bottom: 30px;
+        }
+
+        /* --- FORMULARIO GLASS --- */
+        .header-title { color: white; margin-bottom: 25px; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+
+        .glass-card {
+            background-color: var(--glass-bg-light);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px var(--shadow-soft);
+        }
+
+        .section-title {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: var(--primary-blue);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Grid de 4 columnas para máximo control */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group.span-2 { grid-column: span 2; }
+
+        .form-group label { font-size: 0.8em; font-weight: bold; color: #555; }
+        .form-group input, .glass-select {
+            padding: 11px;
+            border-radius: 8px;
+            border: 1px solid rgba(0,0,0,0.1);
+            background: rgba(255,255,255,0.6);
+            outline: none;
+            transition: 0.2s;
+            width: 100%;
+            font-size: 0.95em;
+            color: var(--font-dark);
+        }
+        .form-group input:focus, .glass-select:focus {
+            border-color: var(--primary-blue);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        .glass-select { cursor: pointer; appearance: auto; }
+
+        .footer-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-top: 10px;
+            margin-bottom: 50px;
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.3s;
+        }
+        .btn-save { background: var(--primary-blue); color: white; box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3); }
+        .btn-save:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4); }
+        .btn-cancel { background: white; color: var(--font-dark); border: 1px solid rgba(0,0,0,0.1); }
+        .btn-cancel:hover { background: #f8f9fa; }
+
+        .toggle-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+
+        @media (max-width: 1100px) {
+            .form-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 600px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .form-group.span-2 { grid-column: span 1; }
+        }
+    </style>
+</head>
+<body>
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-container">
+                <img src="/static/img/3ioplus.png" alt="Logo" style="max-height: 35px;">
+            </div>
+            <button id="toggleBtn" class="toggle-btn"><i class="bi bi-list"></i></button>
+        </div>
+        <nav class="menu">
+            <ul>
+                <li><a href="#"><i class="bi bi-speedometer2"></i> <span>Dashboard</span></a></li>
+                <li class="active"><a href="#"><i class="bi bi-people"></i> <span>Clientes</span></a></li>
+                <li><a href="#"><i class="bi bi-file-earmark-text"></i> <span>Contratos</span></a></li>
+                <hr style="margin: 10px 20px; opacity: 0.1;">
+                <li><a href="#"><i class="bi bi-gear"></i> <span>Configuración</span></a></li>
+                <li><a href="#"><i class="bi bi-box-arrow-right"></i> <span>Salir</span></a></li>
+            </ul>
+        </nav>
+    </aside>
+    <main id="content" class="content">
+        <header class="navbar">
+            <h2 style="font-size: 1.1em; color: var(--primary-blue);">CRM Business Manager</h2>
+            <div class="user-info">
+                <i class="bi bi-person-circle"></i> <span>Juan Miranda</span>
+            </div>
+        </header>
+        <div class="header-title">
+            <h1>Editar Perfil de Cliente</h1>
+            <span class="client-id-tag">#CL-{{cliente.idCliente}}</span>
+        </div>
+        <form action="/update-cliente/{{cliente.id}}" method="POST" id="editClientForm">
+
+            <input type="hidden" name="idCliente" value="{{cliente.idCliente}}">
+            <div class="glass-card">
+                <div class="section-title"><i class="bi bi-person-vcard"></i> Identificaci&oacute;n</div>
+                <div class="form-grid">
+                    <div class="form-group span-2">
+                        <label>Razón Social</label>
+                        <input type="text" name="cliRazon" value="{{cliente.cliRazon}}" >
+                    </div>
+                     <div class="form-group span-1">
+                        <label>Nombre</label>
+                        <input type="text" name="cliNombre" value="{{cliente.cliNombre}}" >
+                    </div>
+                    <div class="form-group span-1">
+                        <label>Apellido</label>
+                        <input type="text" name="cliApellido" value="{{cliente.cliApellido}}" >
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo Documento</label>
+                        <select name="idTipoID" class="glass-select">
+                            {% for tipoid in tipoids %}
+                                <option value="{{ tipoid.idTipoID }}" {% if tipoid.idTipoID == cliente.idTipoID %}selected{% endif %}>{{ tipoid.idtipoid }}</option>
+                             {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Número de Documento</label>
+                        <input type="number" name="nroID" value="{{cliente.nroID}}" required>
+                    </div>
+                     <div class="form-group span-2">
+                        <label>Fantas&iacute;a</label>
+                        <input type="text" name="cliFantasia" value="{{cliente.cliFantasia}}" >
+                    </div>
+                </div>
+            </div>
+            <div class="glass-card">
+                <div class="section-title"><i class="bi bi-geo-alt"></i> Ubicación</div>
+                <div class="form-grid">
+                     <div class="form-group span-1">
+                        <label>Pais</label>
+                         <select name="idPais" id="idPais" class="glass-select" onchange="loadsubpaises()">
+                             {% for pais in paises %}
+                                <option value="{{ pais.idPais }}" {% if pais.idPais == cliente.idPais %}selected{% endif %}>{{ pais.nombre }}</option>
+                             {% endfor %}
+                         </select>
+                    </div>
+                    <div class="form-group span-1">
+                        <label>Departamento</label>
+                        <select name="idSubPais" id="idSubPais" class="glass-select" onchange="loadciudades()">
+                            {% for subpais in subpaises %}
+                                <option value="{{ subpais.idSubPais }}" {% if subpais.idSubPais == cliente.idSubPais %}selected{% endif %}>{{ subpais.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group span-1">
+                        <label>Ciudad</label>
+                        <select name="idCiudad" id="idCiudad" class="glass-select">
+                            {% for ciudad in ciudades %}
+                                <option value="{{ ciudad.idCiudad }}" {% if ciudad.idCiudad == cliente.idCiudad %}selected{% endif %}>{{ ciudad.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group span-2">
+                        <label>Calle</label>
+                        <input type="text" name="Calle" value="{{cliente.Calle}}">
+                    </div>
+                    <div class="form-group span-1">
+                        <label>Nro. Puerta</label>
+                        <input type="text" name="nroPuerta" value="{{cliente.nroPuerta}}">
+                    </div>
+                    <div class="form-group span-1">
+                        <label>Apto</label>
+                        <input type="text" name="Apto" value="{{cliente.Apto}}">
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <div class="section-title"><i class="bi bi-telephone"></i> Contacto</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Teléfono Fijo</label>
+                        <input type="text" name="Telefono" value="{{cliente.Telefono}}">
+                    </div>
+                    <div class="form-group">
+                        <label>Celular</label>
+                        <input type="text" name="Celular" value="{{cliente.Celular}}">
+                    </div>
+                    <div class="form-group span-2">
+                        <label>Email de Facturación / Avisos</label>
+                        <input type="email" name="eMailAviso" value="{{cliente.eMailAviso}}" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <div class="section-title"><i class="bi bi-receipt"></i> Facturación</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Tipo de Pago</label>
+                        <select name="idTipoPago" id="idTipoPago" class="glass-select">
+                            {% for tipopago in tipospago %}
+                                <option value="{{ tipopago.idTipoPago }}" {% if tipopago.idTipoPago == cliente.idTipoPago %}selected{% endif %}>{{ tipopago.descripcion }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Forma de Pago</label>
+                         <select name="idFormaPago" id="idFormaPago" class="glass-select">
+                            {% for formapago in formaspago %}
+                                <option value="{{ formapago.idFormaPago }}" {% if formapago.idFormaPago == cliente.idFormaPago %}selected{% endif %}>{{ formapago.descripcion }}</option>
+                             {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Vendedor Asignado</label>
+                        <select name="idVendedor" class="glass-select">
+                             {% for vendedor in vendedores %}
+                                <option value="{{ vendedor.idVendedor }}" {% if vendedor.idVendedor == cliente.idVendedor %}selected{% endif %}>{{ vendedor.nombre }}</option>
+                             {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-grid" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.05);">
+                    <div class="form-group">
+                        <label>Fecha Registro</label>
+                        <input type="text" value="{{cliente.FechaAlta}}" readonly style="opacity: 0.7; background: rgba(0,0,0,0.03);">
+                    </div>
+                    <div class="form-group span-2">
+                        <label>Observaciones de Cliente</label>
+                        <input type="text" name="Contacto" value="{{cliente.Contacto}}" placeholder="Notas internas...">
+                    </div>
+                </div>
+            </div>
+            <div class="footer-actions">
+                <button type="button" class="btn btn-cancel" onclick="window.history.back()">Volver a ficha</button>
+                <button type="submit" class="btn btn-save"><i class="bi bi-save"></i> Actualizar Cliente</button>
+            </div>
+        </form>
+    </main>
+
+    <script>
+        const toggleBtn = document.getElementById('toggleBtn');
+        const sidebar = document.getElementById('sidebar');
+        const content = document.getElementById('content');
+
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('closed');
+            content.classList.toggle('shifted');
+        });
+
+        function loadsubpaises(){
+            const token = localStorage.getItem('access_token');
+            document.getElementById('idSubPais').innerHTML = "";
+            let idPais  = document.getElementById('idPais').value;
+            fetch(`/api/subpaises/${idPais}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+              const subSelect = document.getElementById('idSubPais');
+              subSelect.innerHTML = '<option value="">Seleccionar</option>';
+              data.forEach(sub => {
+                const option = document.createElement('option');
+                option.value = sub.idSubPais;
+                option.textContent = sub.nombre;
+                subSelect.appendChild(option);
+              });
+              if (idsubpais) document.getElementById('idSubPais').value = idsubpais;
+              loadciudades(idciudad);
+            })
+            .catch(err => console.error('Error cargando subtipos:', err));
+        }
+
+        function loadciudades(idciudad){
+            const token = localStorage.getItem('access_token');
+            document.getElementById('idCiudad').innerHTML = "";
+            let idPais  = document.getElementById('idPais').value;
+            let idSubPais  = document.getElementById('idSubPais').value;
+            fetch(`/api/ciudades/${idPais}/${idSubPais}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+              const subSelect = document.getElementById('idCiudad');
+              subSelect.innerHTML = '<option value="">Seleccionar</option>';
+              data.forEach(sub => {
+                const option = document.createElement('option');
+                option.value = sub.idCiudad;
+                option.textContent = sub.nombre;
+                subSelect.appendChild(option);
+              });
+              if (idciudad) document.getElementById('idCiudad').value = idciudad;
+            })
+            .catch(err => console.error('Error cargando ciudades:', err));
+        }
+
+        document.getElementById('idTipoPago').addEventListener('change', function() {
+          const token = localStorage.getItem('access_token');
+          const idTipoPago = this.value;
+          document.getElementById('idFormaPago').innerHTML = "";
+          if (!idTipoPago) return; // si no seleccionó nada, no hace nada
+          fetch(`/api/forma_pago/${idTipoPago}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+              const subSelect = document.getElementById('idFormaPago');
+              subSelect.innerHTML = '<option value="">Selecciona una forma pago</option>';
+
+              data.forEach(sub => {
+                const option = document.createElement('option');
+                option.value = sub.idFormaPago;
+                option.textContent = sub.descripcion;
+                subSelect.appendChild(option);
+              });
+            })
+            .catch(err => console.error('Error cargando subtipos:', err));
+        });
+
+        document.getElementById('editClientForm').addEventListener('submit', async function(e) {
+            // 1. Evitamos que la página se recargue (envío tradicional)
+            e.preventDefault();
+
+            // 2. El navegador ya validó los campos 'required' antes de llegar aquí.
+            // Extraemos los datos del formulario de forma sencilla:
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+
+            // 3. Obtenemos el token
+            const token = localStorage.getItem('access_token');
+
+            // Supongamos que el ID del cliente lo tienes disponible
+            const idCliente = "{{ cliente.idCliente }}";
+
+            try {
+
+                const response = await fetch(`/api/cliente/${idCliente}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (response.status === 200 && !result.error) {
+                    alert("Cliente actualizado con éxito");
+                    // Redirigir al perfil del cliente tras el éxito
+                    window.location.href = "/application/editar-cliente/" + idCliente;
+                } else if (response.status === 401) {
+                    alert("Sesión expirada. Por favor, inicia sesión nuevamente.");
+                    window.location.href = "/login";
+                } else {
+                    alert("Error: " + (errorData.msg || "No se pudo actualizar"));
+                }
+            } catch (error) {
+                console.error("Error en la petición:", error);
+                alert("Error de conexión con el servidor.");
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<style>
+    /* --- ESTILOS EXCLUSIVOS DEL CHAT IA (Capa superior independiente) --- */
+        #chat-modal-ia {
+            display: none; position: fixed; bottom: 30px; right: 30px;
+            width: 450px; height: 580px; z-index: 2000;
+            background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 28px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+            flex-direction: column; overflow: hidden;
+            animation: chatIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes chatIn { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+        .chat-ia-header { padding: 18px 24px; background: rgba(255, 255, 255, 0.2); border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; font-weight: 700; }
+        .chat-ia-body { flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; scrollbar-width: none; }
+        .chat-ia-body::-webkit-scrollbar { display: none; }
+        .chat-ia-input-area { padding: 18px; background: rgba(255,255,255,0.4); border-top: 1px solid rgba(0,0,0,0.05); display: flex; gap: 12px; }
+        .chat-ia-input-area input { flex: 1; padding: 12px 18px; border-radius: 15px; border: 1px solid rgba(0,0,0,0.1); outline: none; background: white; }
+
+        .bubble-ia-chat { padding: 12px 16px; border-radius: 18px; max-width: 88%; font-size: 0.92em; line-height: 1.5; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .bubble-ia-user { align-self: flex-end; background: var(--primary-blue); color: white; border-bottom-right-radius: 4px; }
+        .bubble-ia-bot { align-self: flex-start; background: white; color: var(--font-dark); border-bottom-left-radius: 4px; }
+
+        /* Animación latido puntos */
+        .typing-ia-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--font-dark); opacity: 0.4; animation: iaPulse 1.4s infinite ease-in-out; margin: 0 2px; }
+        .typing-ia-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-ia-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes iaPulse { 0%, 80%, 100% { transform: scale(1); opacity: 0.4; } 40% { transform: scale(1.3); opacity: 1; } }
+</style>
+<div id="chat-modal-ia">
+        <div class="chat-ia-header">
+            <span><i class="bi bi-robot"></i> Asistente 3IA</span>
+            <i class="bi bi-dash-lg" onclick="toggleChat()" style="cursor:pointer; font-size: 1.3em; opacity: 0.6;"></i>
+        </div>
+        <div class="chat-ia-body" id="chat-ia-body">
+            <div class="bubble-ia-chat bubble-ia-bot">Hola, soy 3IA. ¿En qué puedo ayudarte hoy?</div>
+        </div>
+        <div class="chat-ia-input-area">
+            <input type="text" id="chat-ia-input" placeholder="Escribe un mensaje...">
+            <button onclick="sendIA()" style="background:var(--primary-blue); border:none; color:white; width:44px; height:44px; border-radius:12px; cursor:pointer;"><i class="bi bi-arrow-up-short" style="font-size: 1.8em;"></i></button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // SIDEBAR ORIGINAL
+            const toggleBtn = document.getElementById('toggleBtn');
+            const sidebar = document.getElementById('sidebar');
+            const content = document.getElementById('content');
+            if(toggleBtn && sidebar) {
+                toggleBtn.addEventListener('click', function() {
+                    sidebar.classList.toggle('closed');
+                    content.classList.toggle('shifted');
+                });
+            }
+
+            // TRIGGER IA DESDE NAVBAR
+            const iaTrigger = document.getElementById('ia-trigger');
+            iaTrigger.addEventListener('keypress', (e) => {
+                if(e.key === 'Enter' && iaTrigger.value.trim() !== "") {
+                    openChatIA(iaTrigger.value);
+                    iaTrigger.value = "";
+                }
+            });
+
+            document.getElementById('chat-ia-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendIA(); });
+        });
+
+        const chatModalIA = document.getElementById('chat-modal-ia');
+        const chatBodyIA = document.getElementById('chat-ia-body');
+
+        function toggleChat() { chatModalIA.style.display = (chatModalIA.style.display === 'flex') ? 'none' : 'flex'; }
+
+        function openChatIA(msg) {
+            chatModalIA.style.display = 'flex';
+            addBubble(msg, 'user');
+            callIA(msg);
+        }
+
+        function addBubble(text, type) {
+            const div = document.createElement('div');
+            div.className = `bubble-ia-chat bubble-ia-${type}`;
+            div.innerHTML = text;
+            chatBodyIA.appendChild(div);
+            setTimeout(() => { chatBodyIA.scrollTo({ top: chatBodyIA.scrollHeight, behavior: 'smooth' }); }, 50);
+            return div;
+        }
+
+        async function sendIA() {
+            const input = document.getElementById('chat-ia-input');
+            const msg = input.value.trim();
+            if(!msg) return;
+            addBubble(msg, 'user');
+            input.value = "";
+            await callIA(msg);
+        }
+
+        async function callIA(mensaje) {
+            const loading = addBubble('<div class="typing-ia-dot"></div><div class="typing-ia-dot"></div><div class="typing-ia-dot"></div>', 'bot');
+            try {
+                const response = await fetch('/ia/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({mensaje: mensaje})
+                });
+                const data = await response.json();
+                loading.remove();
+                addBubble(data.respuesta_ia, 'bot');
+            } catch (e) {
+                loading.remove();
+                addBubble("Error de conexión.", 'bot');
+            }
+        }
+    </script>

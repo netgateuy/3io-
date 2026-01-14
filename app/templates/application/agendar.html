@@ -485,28 +485,7 @@ table th {
     </style>
 </head>
 <body>
-     <aside id="sidebar" class="sidebar">
-        <div class="sidebar-header">
-            <div class="logo-container">
-                <img src="/static/img/3ioplus.png" alt="CRM Logo" title="Tu Logo PNG">
-            </div>
-            <button id="toggleBtn" class="toggle-btn" title="Plegar/Desplegar Menú">&#9776;</button>
-        </div>
-        <nav class="menu">
-            <ul>
-                <li><a href="#"><i class="bi bi-speedometer2"></i> <span>Dashboard</span></a></li>
-                <li><a href="#"><i class="bi bi-people"></i> <span>Clientes</span></a></li>
-                <li><a href="#"><i class="bi bi-file-earmark-text"></i> <span>Contratos</span></a></li>
-                <li class="active"><a href="/application/oportunidades" class="active"><i class="bi bi-bag-check"></i><span>Oportunidades</span></a></li>
-                <li><a href="#"><i class="bi bi-calendar-check"></i> <span>Tareas y Agenda</span></a></li>
-                <li><a href="#"><i class="bi bi-graph-up-arrow"></i> <span>Reportes</span></a></li>
-                <hr style="margin: 15px 20px; border-color: rgba(255, 255, 255, 0.2);">
-                <li><a href="#"><i class="bi bi-gear"></i> <span>Configuración</span></a></li>
-                <li><a href="#"><i class="bi bi-box-arrow-right"></i> <span>Cerrar Sesión</span></a></li>
-            </ul>
-        </nav>
-    </aside>
-
+     {% include '/application/menu.html' %}
     <main class="content">
         <header class="navbar">
             <div class="user-info"><span>Juan Miranda</span></div>
@@ -535,12 +514,10 @@ table th {
             <div class="glass-card">
                 <h2><i class="bi bi-person-workspace"></i> Detalles del Evento</h2>
                 <div class="form-grid grid-2">
-
                     <div class="form-group" style="grid-column: 1 / -1;">
                         <label for="titulo">Asunto / Título (*)</label>
                         <input type="text" id="descripcion" name="descripcion" class="form-control" placeholder="Ej: Reunión inicial de proyecto..." required>
                     </div>
-
                     <div class="form-group">
                         <label for="cliente">Cliente</label>
                         <b>{{ cliente.idCliente }}</b> - {{ cliente.cliRazon }}{{ cliente.cliNombre }} {{ cliente.cliApellido }}
@@ -554,8 +531,6 @@ table th {
                             {% endfor %}
                         </select>
                     </div>
-
-
                     <div class="form-group" style="grid-column: 1 / -1;">
                         <label for="direccion">Ubicación / Dirección</label>
                         <div style="position: relative;">
@@ -582,6 +557,8 @@ table th {
 
     <script>
         function guardarEvento() {
+            const token = localStorage.getItem('access_token');
+
             // 1. Recopilar datos del formulario
             const dataAgenda = {
                 descripcion: document.getElementById('descripcion').value,

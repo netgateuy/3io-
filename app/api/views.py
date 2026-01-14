@@ -1,7 +1,8 @@
-from flask import request, jsonify
+from flask import request, jsonify, session
+from time import gmtime, strftime
 import base64, re
 from ..models.Contract import Contract
-from ..models.Product import ProductContract, ContractProductFieldValue, ProductFieldPrice, ProductFieldValue, ProductField, Product
+from ..models.Product import ProductContract, ContractProductFieldValue, ProductFieldPrice, ProductFieldValue, ProductField, Product, ProductClient, ClientProductFieldValue
 from ..models.Equipo import Equipo, Marca, Modelo, Proveedor, EquipoTipo, EquipoFamilia, EquipoContract
 from ..models.Oportunidad import Oportunidad, EtapaOportunidad, TipoOportunidad, AccionOportunidad, EstadoOportunidad, ArchivoOportunidad
 from ..models.Cliente import Cliente, TipoID
@@ -14,27 +15,332 @@ from ..models.FormaPago import FormaPago
 from ..models.TipoPago import TipoPago
 from ..models.Ciudad import Ciudad
 from ..models.Agenda import Agenda
+from ..models.Reclamo import Reclamo, ReclamoAccion
+from ..models.User import User, TokenBlocklist
 from . import api
-from time import gmtime, strftime
-from app import db
-from sqlalchemy import or_, func
-from datetime import datetime
+from app import db, jwt
+from sqlalchemy import or_, and_, func
+from datetime import datetime, date, timezone
 from urllib.parse import unquote
 import requests
+from flask_jwt_extended import jwt_required, create_access_token, get_jwt
+
+
+@jwt.token_in_blocklist_loader
+def check_if_token_revoked(jwt_header, jwt_payload):
+    jti = jwt_payload["jti"]
+    token = TokenBlocklist.query.filter_by(jti=jti).first()
+    return token is not None
+
+
+@api.route("/logout", methods=["DELETE"])
+@jwt_required()
+def logout():
+    jti = get_jwt()["jti"]
+    now = datetime.now(timezone.utc)
+
+    # Guardamos el identificador del token en la base de datos
+    revoked_token = TokenBlocklist(jti=jti, created_at=now)
+    db.session.add(revoked_token)
+    db.session.commit()
+
+    return jsonify({"msg": "Sesión cerrada (token revocado)"}), 200
+
+# Create a route to authenticate your users and return JWTs. The
+# create_access_token() function is used to actually generate the JWT.
+@api.route("/login", methods=["POST"])
+def login():
+    data = request.get_json()
+    username = data.get("username")
+    password = data.get("password")
+
+    # 1. Buscar al usuario en la base de datos
+    user = User.query.filter_by(username=username).first()
+
+    # 2. Validar que exista y que la clave sea correcta
+    if user and user.verify_password(password):
+        session['user_id'] = user.id
+        # Puedes guardar el ID del usuario como identidad en el token
+        # Es más útil que el nombre para futuras consultas
+        access_token = create_access_token(identity=str(user.id))
+
+        return jsonify({
+            "access_token": access_token,
+            "user": {
+                "username": user.username,
+                "first_name": user.first_name,
+                "role_id": user.role_id
+            }
+        }), 200
+
+    # 3. Si falla
+    return jsonify({"msg": "Usuario o contraseña incorrectos"}), 401
 
 @api.route('/')
+@jwt_required()
 def index():
     try:
         return "Netgate API For Clients 3io.netgate.com.uy"
     except Exception as e:
         return str(e)
 
+
+@api.route('/producto/<id>',methods=['DELETE'])
+@jwt_required()
+def deleteproduct(id):
+    try:
+        productClient = ProductClient.query.filter_by(id=id).first()
+        productClient.fechafin = datetime.now().strftime('%Y-%m-%d')
+        db.session.add(productClient)
+        db.session.commit()
+    except Exception as e:
+        return jsonify(
+            observation=str(e),
+            error=True,
+            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        )
+
+@api.route('/producto',methods=['PUT'])
+@jwt_required()
+def updateproduct():
+    try:
+        content = request.json
+        productClient = ProductClient.query.filter_by(id=content["id"]).first()
+        productClient.idproduct = content["idproductonew"]
+        productClient.idmoneda = content["idmoneda"]
+        productClient.fechainicio = content["fechainicio"] or None
+        productClient.fechafin = content["fechafin"] or None
+        productClient.idperiodo = content["idperiodo"]
+        productClient.identificador = content["identificador"]
+        productClient.observaciones = content["observaciones"]
+        productClient.importe = content["importe"]
+        db.session.add(productClient)
+        db.session.commit()
+
+        #Vemos si modifica producto o mantiene
+        if content["idproductonew"] == content["id"]:
+            #Tenemos que actualizar los campos dinamicos del producto
+            for key, value in content.items():
+                if key.startswith("campo_"):
+                    match = re.match(r"campo_(\d+)", key)
+                    if match:
+                        id_field = int(match.group(1))
+                        field = ClientProductFieldValue.query.filter_by(idProduct=content["idproducto"],idProductClient=content["id"],idProductField=id_field).first()
+                        field.idProduct = content["idproductonew"]
+                        field.idProductClient = content["id"]
+                        field.value = value
+                        db.session.add(field)
+                        db.session.commit()
+        else:
+            #Damos de alta Fields Nuevos
+            ClientProductFieldValue.query.filter_by(idProduct=content["idproducto"], idProductClient=content["id"]).delete()
+            for key, value in content.items():
+                if key.startswith("campo_"):
+                    match = re.match(r"campo_(\d+)", key)
+                    if match:
+                        id_field = int(match.group(1))
+                        field = ClientProductFieldValue()
+                        field.idProduct = content["idproductonew"]
+                        field.idProductField = id_field
+                        field.idProductClient = content["id"]
+                        field.value = value
+                        db.session.add(field)
+                        db.session.commit()
+        return jsonify(
+            contract=content["id"],
+            observation="Producto modificado correctamente.",
+            error=False,
+            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        )
+    except Exception as e:
+        return jsonify(
+            observation=str(e),
+            error=True,
+            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        )
+
+@api.route('/producto',methods=['POST'])
+@jwt_required()
+def addproduct():
+    try:
+        content = request.json
+        productClient = ProductClient()
+        productClient.idproduct = content["idproductonew"]
+        productClient.idmoneda = content["idmoneda"]
+        productClient.fechainicio = content["fechainicio"] or None
+        productClient.fechafin = content["fechafin"] or None
+        productClient.idperiodo = content["idperiodo"]
+        productClient.identificador = content["identificador"]
+        productClient.observaciones = content["observaciones"]
+        productClient.idclient = content["idcliente"]
+        productClient.importe = content["importe"]
+        db.session.add(productClient)
+        db.session.commit()
+
+        #Damos de alta Fields Nuevos
+        for key, value in content.items():
+            if key.startswith("campo_"):
+                match = re.match(r"campo_(\d+)", key)
+                if match:
+                    id_field = int(match.group(1))
+                    field = ClientProductFieldValue()
+                    field.idProduct = content["idproductonew"]
+                    field.idProductField = id_field
+                    field.idProductClient = productClient.id
+                    field.value = value
+                    db.session.add(field)
+                    db.session.commit()
+
+        return jsonify(
+            contract=content["id"],
+            observation="Producto ingresado correctamente.",
+            error=False,
+            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        )
+    except Exception as e:
+        return jsonify(
+            observation=str(e),
+            error=True,
+            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        )
+
+#Solo devolvemos productos activos
+@api.route('/productos-listado',methods=['GET'])
+@jwt_required()
+def getlistadoproductos():
+    try:
+        #Obtenemos ID Cliente
+        id_cliente = request.args.get('idCliente')
+
+        #Consultamos los productos del cliente
+        query = db.session.query(ProductClient, Product, Moneda) \
+            .join(Product, Product.id == ProductClient.idproduct) \
+            .join(Moneda, ProductClient.idmoneda == Moneda.idMoneda) \
+            .filter(ProductClient.idclient == id_cliente)
+
+        #Fecha Actual
+        fecha_actual = date.today()
+
+        #Filtramos los proudctos activos
+        query = query.filter(or_(
+            ProductClient.fechafin > fecha_actual,
+            ProductClient.fechafin == None
+        ))
+
+        #Obtenemos el total de productos
+        total_registros = query.count()
+
+        #Obtenemos todos los productos del cliente
+        productos = query.all()
+
+        #Armamos el JSON para devolver
+        resultados = []
+        for pc, prod, mon in productos:
+            resultados.append({
+                "id": pc.id,
+                "idproduct": pc.idproduct,
+                "producto": prod.name,
+                "importe": str(pc.importe),
+                "idmoneda": pc.idmoneda,
+                "abreviacion": mon.abreviacion,
+                "idperiodo": pc.idperiodo,
+                "identificador": pc.identificador,
+            })
+        return jsonify({
+            "total": total_registros,
+            "productos": resultados
+        })
+
+    except Exception as e:
+        return jsonify(
+            observation=str(e),
+            error=True,
+            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        )
+
+@api.route('/productos-cliente',methods=['GET'])
+@jwt_required()
+def getproductos():
+    try:
+        # 1. Capturar parámetros de la URL (con valores por defecto)
+        id_cliente = request.args.get('idCliente')
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 10))
+        search_query = request.args.get('q', '')
+        status_filter = request.args.get('status', 'todos')
+
+        fecha_actual = date.today()
+
+        # 2. Base de la consulta
+        query = db.session.query(ProductClient, Product, Moneda) \
+            .join(Product, Product.id == ProductClient.idproduct) \
+            .join(Moneda, ProductClient.idmoneda == Moneda.idMoneda) \
+            .filter(ProductClient.idclient == id_cliente)
+
+        # 3. Aplicar filtro de búsqueda (si existe texto)
+        if search_query:
+            query = query.filter(or_(
+                Product.name.ilike(f"%{search_query}%"),
+                ProductClient.identificador.ilike(f"%{search_query}%")
+            ))
+
+        # 4. Aplicar filtro de Estado (Activo/Baja/Todos)
+        if status_filter == 'activo':
+            query = query.filter(or_(
+                ProductClient.fechafin > fecha_actual,
+                ProductClient.fechafin == None
+            ))
+        elif status_filter == 'baja':
+            query = query.filter(and_(
+                ProductClient.fechafin != None,
+                ProductClient.fechafin <= fecha_actual
+            ))
+
+        # 5. Obtener el TOTAL antes de paginar (necesario para el frontend)
+        total_registros = query.count()
+
+        # 6. Aplicar Paginación (Limit y Offset)
+        offset = (page - 1) * limit
+        productos_paginados = query.limit(limit).offset(offset).all()
+
+        # 7. Formatear la respuesta JSON para el JavaScript
+        resultados = []
+        for pc, prod, mon in productos_paginados:
+            # Lógica simple para determinar el texto del estado
+            estado_texto = "Activo" if (pc.fechafin is None or pc.fechafin > fecha_actual) else "Baja"
+
+            resultados.append({
+                "id": pc.id,
+                "idproduct": pc.idproduct,
+                "nombre_producto": prod.name,
+                "identificador": pc.identificador,
+                "importe": str(pc.importe),
+                "moneda": mon.abreviacion,
+                "idmoneda": pc.idmoneda,
+                "idperiodo": pc.idperiodo,
+                "estado": estado_texto,
+                "fechainicio": pc.fechainicio.strftime('%Y-%m-%d') if pc.fechainicio else "",
+                "fechafin": pc.fechafin.strftime('%Y-%m-%d') if pc.fechafin else "",
+                "observaciones": pc.observaciones or ""
+            })
+
+        return jsonify({
+            "total": total_registros,
+            "productos": resultados
+        })
+    except Exception as e:
+        return jsonify(
+            observation=str(e),
+            error=True,
+            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        )
+
 @api.route('/contrato',methods=['POST'])
+@jwt_required()
 def addcontract():
     try:
         content = request.json
         contract = Contract()
-
         contract.fechavto = content['fechavto']
         contract.fechatope = content['fechatope']
         contract.idvendedor = content['idvendedor']
@@ -87,6 +393,7 @@ def addcontract():
         )
 
 @api.route('/equipo',methods=['POST'])
+@jwt_required()
 def addequipo():
     try:
         content = request.json
@@ -119,6 +426,7 @@ def addequipo():
         )
 
 @api.route('/marca',methods=['POST'])
+@jwt_required()
 def addmarca():
     try:
         content = request.json
@@ -141,6 +449,7 @@ def addmarca():
         )
 
 @api.route('/modelo',methods=['POST'])
+@jwt_required()
 def addmodelo():
     try:
         content = request.json
@@ -169,6 +478,7 @@ def addmodelo():
         )
 
 @api.route('/proveedor', methods=['POST'])
+@jwt_required()
 def addproveedor():
     try:
         content = request.json
@@ -188,18 +498,21 @@ def addproveedor():
         )
 
 @api.route('/equipos/tipos', methods=['GET'])
+@jwt_required()
 def equipos_tipos():
     tipos = EquipoTipo.query.filter_by(visible=1).all()
     tipos_json = [tipo.to_dict() for tipo in tipos]
     return jsonify(tipos_json)
 
 @api.route('/equipos/familia', methods=['GET'])
+@jwt_required()
 def equipos_familia():
     familias = EquipoFamilia.query.filter_by(visible=1).all()
     familias_json = [familia.to_dict() for familia in familias]
     return jsonify(familias_json)
 
 @api.route('/marcas', methods=['GET'])
+@jwt_required()
 def marcas():
     idtipoequipo = request.args.get('idtipoequipo')
     visible = request.args.get('visible')
@@ -218,6 +531,7 @@ def marcas():
 
 
 @api.route('/proveedores', methods=['GET'])
+@jwt_required()
 def proveedores():
     visible = request.args.get('visible')
     proveedores = Proveedor.query.filter_by().all()
@@ -229,6 +543,7 @@ def proveedores():
     return jsonify(proveedores_json)
 
 @api.route('/modelos', methods=['GET'])
+@jwt_required()
 def modelos():
     idtipoequipo = request.args.get('idtipoequipo')
     idmarca = request.args.get('idmarca')
@@ -249,7 +564,122 @@ def modelos():
     modelos_json = [modelo.to_dict() for modelo in modelos]
     return jsonify(modelos_json)
 
+
+@api.route("/clientes", methods=["GET"])
+@jwt_required()
+def get_clientes():
+    # Parámetros de paginación y búsqueda
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 25, type=int)
+    search = request.args.get('search', '', type=str)
+
+    # Consulta base
+    query = Cliente.query
+
+    if search:
+        search_filter = f"%{search}%"
+        query = query.filter(
+            (Cliente.cliNombre.ilike(search_filter)) |
+            (Cliente.cliApellido.ilike(search_filter)) |
+            (Cliente.nroID.ilike(search_filter)) |
+            (Cliente.idCliente.cast(db.String).ilike(search_filter))
+
+        )
+
+    # Ejecutar paginación
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+
+    return jsonify({
+        "clientes": [
+            {
+                "id": c.id,
+                "idPais": c.idPais,
+                "idCliente": c.idCliente,
+                "idSucursal": c.idSucursal,
+                "cliNombre": c.cliNombre,
+                "cliNombre": c.cliNombre,
+                "cliApellido": c.cliApellido,
+                "cliRazon": c.cliRazon,
+                "cliFantasia": c.cliFantasia,
+                "idTipoID": c.idTipoID,
+                "nroID": c.nroID,
+                "idPais1": c.idPais1,
+                "idSubPais": c.idSubPais,
+                "idCiudad": c.idCiudad,
+                "idBarrio": c.idBarrio,
+                "Calle": c.Calle,
+                "nroPuerta": c.nroPuerta,
+                "Apto": c.Apto,
+                "CodigoPostal": c.CodigoPostal,
+                "Telefono": c.Telefono,
+                "Celular": c.Celular,
+                "idTipoPago": c.idTipoPago,
+                "idFormaPago": c.idFormaPago,
+                "eMailAviso": c.eMailAviso,
+                "idVendedor": c.idVendedor,
+                "FechaAlta": c.FechaAlta,
+                "FechaBaja": c.FechaBaja,
+                "idCausalBaja": c.idCausalBaja,
+                "CausalBaja": c.CausalBaja,
+                "mailAviso": c.mailAviso,
+                "Contacto": c.Contacto,
+                "idGNS": c.idGNS,
+                "fechaSincronizacionGNS": c.fechaSincronizacionGNS,
+                "obsGNS": c.obsGNS,
+                "fechaBajaGNS": c.fechaBajaGNS,
+                "bajaGNSPor": c.bajaGNSPor,
+                "obsBajaGNS": c.obsBajaGNS,
+            } for c in pagination.items
+        ],
+        "total_pages": pagination.pages,
+        "current_page": pagination.page,
+        "total_results": pagination.total
+    }), 200
+
+@api.route('/cliente/<id>',methods=['PUT'])
+@jwt_required()
+def update_client(id):
+    try:
+        content = request.json
+        # Actualizamos los datos del cliente
+        cliente = Cliente.query.filter_by(idCliente=id).first()
+        cliente.idPais = content["idPais"]
+        cliente.cliNombre = content["cliNombre"]
+        cliente.cliApellido = content["cliApellido"]
+        cliente.cliRazon = content["cliRazon"]
+        cliente.cliFantasia = content["cliFantasia"]
+        cliente.idTipoID = content["idTipoID"]
+        cliente.nroID = content["nroID"]
+        cliente.idSubPais = content["idSubPais"]
+        cliente.idCiudad = content["idCiudad"]
+        cliente.Calle = content["Calle"]
+        cliente.nroPuerta = content["nroPuerta"]
+        cliente.Apto = content["Apto"]
+        cliente.Telefono = content["Telefono"]
+        cliente.Celular = content["Celular"]
+        cliente.idTipoPago = content["idTipoPago"]
+        cliente.idFormaPago = content["idFormaPago"]
+        cliente.eMailAviso = content["eMailAviso"]
+        cliente.Contacto = content["Contacto"]
+        db.session.merge(cliente)
+        db.session.commit()
+
+        return jsonify(
+            idCliente=content["idCliente"],
+            observation="Cliente modificado correctamente.",
+            error=False,
+            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        )
+
+    except Exception as e:
+        return jsonify(
+            observation=str(e),
+            error=True,
+            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        )
+
 @api.route('/oportunidad',methods=['POST'])
+@jwt_required()
 def addoportunidad():
     try:
         content = request.json
@@ -353,6 +783,7 @@ def addoportunidad():
         )
 
 @api.route('/accionoportunidad',methods=['POST'])
+@jwt_required()
 def addaccionoportunidad():
     try:
         content = request.json
@@ -378,6 +809,7 @@ def addaccionoportunidad():
         )
 
 @api.route('/tipooportunidad',methods=['POST'])
+@jwt_required()
 def addotipoportunidad():
     try:
         content = request.json
@@ -395,6 +827,7 @@ def addotipoportunidad():
 
 
 @api.route('/etapaoportunidad',methods=['POST'])
+@jwt_required()
 def addetapaoportunidad():
     try:
         content = request.json
@@ -413,6 +846,7 @@ def addetapaoportunidad():
         )
 
 @api.route('/cliente',methods=['POST'])
+@jwt_required()
 def addcliente():
     try:
         content = request.json
@@ -455,6 +889,7 @@ def addcliente():
         )
 
 @api.route('/cliente/filter/', methods=['GET'])
+@jwt_required()
 def get_cliente_filter():
     q = request.args.get('q')
     clientes = Cliente.query.filter(or_(
@@ -496,6 +931,7 @@ def get_cliente_filter():
     return jsonify(data)
 
 @api.route('/product-price/<idproduct>/<idfiled>/<id>', methods=['GET'])
+@jwt_required()
 def get_price(idproduct,idfiled,id):
     price = ProductFieldPrice.query.filter_by(idProduct=idproduct,idField=idfiled,value=id).first()
     if price:
@@ -511,6 +947,7 @@ def get_price(idproduct,idfiled,id):
         return jsonify({'error': 'Precio no encontrato'}), 404
 
 @api.route('/cliente/<int:idCliente>', methods=['GET'])
+@jwt_required()
 def get_cliente(idCliente):
     cliente = Cliente.query.filter_by(idCliente=idCliente).first()
     if cliente:
@@ -544,6 +981,7 @@ def get_cliente(idCliente):
         return jsonify({'error': 'Cliente no encontrado'}), 404
 
 @api.route('/subpaises/<idPais>', methods=['GET'])
+@jwt_required()
 def get_subpaises(idPais):
     subpaises = SubPais.query.filter_by(idPais=idPais).order_by(SubPais.nombre).all()
     data = []
@@ -556,6 +994,7 @@ def get_subpaises(idPais):
     return jsonify(data)
 
 @api.route('/product-field-values/<idProduct>/<idField>', methods=['GET'])
+@jwt_required()
 def get_productfieldsvalues(idProduct,idField):
     values = ProductFieldValue.query.filter_by(idProduct=idProduct,idField=idField).order_by(ProductFieldValue.order).all()
     data = []
@@ -569,6 +1008,7 @@ def get_productfieldsvalues(idProduct,idField):
     return jsonify(data)
 
 @api.route('/product-field-filter/<idProduct>/<idField>/<idFieldFilter>', methods=['GET'])
+@jwt_required()
 def get_productfieldsfilter(idProduct,idField,idFieldFilter):
     values = ProductFieldValue.query.filter_by(idProduct=idProduct,idField=idField,idFieldFilter=idFieldFilter).order_by(ProductFieldValue.value).all()
     data = []
@@ -582,6 +1022,7 @@ def get_productfieldsfilter(idProduct,idField,idFieldFilter):
     return jsonify(data)
 
 @api.route('/ciudades/<idPais>/<idSubPais>', methods=['GET'])
+@jwt_required()
 def get_ciudades(idPais,idSubPais):
     ciudades = Ciudad.query.filter_by(idPais=idPais,idSubPais=idSubPais).order_by(Ciudad.nombre).all()
     data = []
@@ -596,6 +1037,7 @@ def get_ciudades(idPais,idSubPais):
     return jsonify(data)
 
 @api.route('/forma_pago/<idTipoPago>', methods=['GET'])
+@jwt_required()
 def get_forma_pago(idTipoPago):
     formaspago = FormaPago.query.filter_by(idTipoPago=idTipoPago).all()
 
@@ -609,6 +1051,7 @@ def get_forma_pago(idTipoPago):
     return jsonify(data)
 
 @api.route("/subir-archivo", methods=["POST"])
+@jwt_required()
 def subir_archivo():
     archivo = request.files.get("archivo")
     if not archivo:
@@ -763,7 +1206,49 @@ def getOportunidad(oportunidad, contratos, cliente):
     # JSON final
     return oportunidad_json
 
+@api.route("/alta-productos/<idoportunidad>", methods=["POST"])
+#@jwt_required()
+def alta_productos(idoportunidad):
+    try:
+        oportunidad = Oportunidad.query.filter_by(id=idoportunidad).first()
+        contracts = Contract.query.filter_by(idoportunidad=idoportunidad).all()
+        for contract in contracts:
+            products = ProductContract.query.filter_by(idcontract=contract.id)
+            for product in products:
+                #Migramos los productos
+                pc = ProductClient()
+                pc.idclient = oportunidad.idcliente
+                pc.idproduct = product.idproduct
+                pc.idmoneda = product.idmoneda
+                pc.idperiodo = product.idperiodo
+                pc.importe = product.importe
+                pc.identificador = product.identificador
+                db.session.add(pc)
+
+                fields = ContractProductFieldValue.query.filter_by(idProduct=product.idproduct)
+                for field in fields:
+                    #Migramos los fields
+                    fc = ClientProductFieldValue()
+                    fc.idProduct = field.idProduct
+                    fc.idProductField = field.idProductField
+                    fc.idProductClient = pc.id
+                    fc.value = field.value
+                    db.session.add(fc)
+            db.session.commit()
+        return jsonify(
+            observation="Productos dados de alta correctamente.",
+            error=False,
+            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        ), 200
+    except Exception as e:
+        return jsonify(
+            observation="Error al dar de alta los productos: " + str(e),
+            error=True,
+            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        ), 500
+
 @api.route("/avanzar-etapa/<idoportunidad>", methods=["POST"])
+@jwt_required()
 def avanzar_etapa(idoportunidad):
     #Obtengo la primer etapa sin realizar
     oportunidad = Oportunidad.query.filter_by(id=idoportunidad).first()
@@ -808,6 +1293,7 @@ def avanzar_etapa(idoportunidad):
 
 
 @api.route('/agendar', methods=['POST'])
+@jwt_required()
 def crear_agenda():
     data = request.json
 
@@ -849,6 +1335,7 @@ def crear_agenda():
         return jsonify({'error': 'Error interno', 'detalle': str(e)}), 500
 
 @api.route('/agenda/<int:id>', methods=['GET'])
+@jwt_required()
 def obtener_agenda(id):
     agenda = Agenda.query.get_or_404(id)
     # Usamos el helper to_dict() que creamos en la clase
@@ -856,6 +1343,7 @@ def obtener_agenda(id):
 
 
 @api.route('/agenda/<int:id>', methods=['PUT'])
+@jwt_required()
 def modificar_agenda(id):
     agenda = Agenda.query.get_or_404(id)
     data = request.json
@@ -909,6 +1397,7 @@ def modificar_agenda(id):
 
 
 @api.route('/agenda', methods=['GET'])
+@jwt_required()
 def obtener_agenda_rango():
     agenda = []
     fecha = request.args.get('fecha')
@@ -951,8 +1440,8 @@ def obtener_agenda_rango():
         "data": agenda
     })
 
-
 @api.route('/equipo/serie/<string:nro_serie>', methods=['GET'])
+@jwt_required()
 def buscar_equipo_por_serie(nro_serie):
     """
     Busca un equipo por su número de serie (nroserie)
@@ -996,6 +1485,7 @@ def buscar_equipo_por_serie(nro_serie):
 
 
 @api.route('/asignarequipos', methods=['POST'])
+@jwt_required()
 def asignar_equipos_contract():
     data = request.get_json()
     # Extraer encabezados
@@ -1034,3 +1524,128 @@ def asignar_equipos_contract():
     except Exception as e:
         db.session.rollback()  # Si algo falla, cancelamos todo
         return jsonify({"error": str(e)}), 500
+
+@api.route('/reclamo', methods=['POST'])
+@jwt_required()
+def crear_reclamo():
+    data = request.get_json()
+
+    try:
+        nuevo_reclamo = Reclamo(
+            idPais=data.get('idPais'),
+            idCliente=data.get('idCliente'),
+            idTipoReclamo=data.get('idTipoReclamo'),
+            idProductoCliente=data.get('idProductoCliente'),
+            obsAlta=data.get('obsAlta'),
+            # Convertimos string a objeto date de Python
+            fechaAlta=datetime.strptime(data.get('fechaAlta'), '%Y-%m-%d').date() if data.get('fechaAlta') else None,
+            altaPor=data.get('altaPor'),
+            idPrioridad=data.get('idPrioridad'),
+            reclamadoPor=data.get('reclamadoPor'),
+            emailAviso=data.get('emailAviso'),
+            telefonoAviso=data.get('telefonoAviso'),
+            celularAviso=data.get('celularAviso'),
+            whatsapp=data.get('whatsapp', False)
+        )
+
+        db.session.add(nuevo_reclamo)
+        db.session.commit()
+
+        return jsonify({"message": "Reclamo creado con éxito", "id": nuevo_reclamo.id}), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+@api.route('/reclamo/accion', methods=['POST'])
+@jwt_required()
+def registrar_accion():
+    data = request.get_json()
+    id_reclamo = data.get('idReclamo')
+
+    # Verificamos que el reclamo exista
+    reclamo = Reclamo.query.get(id_reclamo)
+    if not reclamo:
+        return jsonify({"message": "Reclamo no encontrado"}), 404
+
+    try:
+        # 1. Creamos el registro en ReclamoAccion
+        nueva_accion = ReclamoAccion(
+            idReclamo=id_reclamo,
+            fechaAccion=datetime.now().date(),
+            accionPor=data.get('accionPor'),
+            idTipoReclamo=reclamo.idTipoReclamo,  # Hereda del reclamo original o del JSON
+            idTipoAccion=data.get('idTipoAccion'),
+            obsAccion=data.get('obsAccion'),
+            idHoras=data.get('idHoras'),
+            idMinutos=data.get('idMinutos')
+        )
+        db.session.add(nueva_accion)
+
+        # 2. Modificación del Reclamo (Lógica de negocio)
+        # Si la acción implica cerrar el reclamo o actualizar observaciones:
+        if data.get('finalizaReclamo'):
+            reclamo.fechaSolucion = datetime.now().date()
+            reclamo.solucionPor = data.get('accionPor')
+            reclamo.idTipoSolucion = data.get('idTipoAccion')
+            reclamo.obsSolucion = data.get('obsAccion')
+
+        # Actualizamos campos de aviso si vienen en la petición
+        if data.get('proximoAviso'):
+            reclamo.proximoAviso = datetime.strptime(data.get('proximoAviso'), '%Y-%m-%d').date()
+            reclamo.pospuestoPor = data.get('accionPor')
+
+        db.session.commit()
+        return jsonify({"message": "Acción registrada y reclamo actualizado"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+
+@api.route('/reclamo/<int:id>', methods=['PUT'])
+@jwt_required()
+def modificar_reclamo(id):
+    reclamo = Reclamo.query.get_or_404(id)
+    data = request.get_json()
+
+    try:
+        # Actualización selectiva (solo lo que viene en el JSON)
+        for key, value in data.items():
+            if hasattr(reclamo, key):
+                # Validación simple para fechas
+                if key in ['fechaAlta', 'fechaSolucion', 'proximoAviso'] and value:
+                    setattr(reclamo, key, datetime.strptime(value, '%Y-%m-%d').date())
+                else:
+                    setattr(reclamo, key, value)
+
+        db.session.commit()
+        return jsonify({"message": "Reclamo actualizado correctamente"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+
+@api.route('/reclamo/accion/<int:id_accion>', methods=['PUT'])
+@jwt_required()
+def modificar_accion(id_accion):
+    accion = ReclamoAccion.query.get_or_404(id_accion)
+    data = request.get_json()
+    try:
+        # Si viene una fecha, la convertimos
+        if 'fechaAccion' in data:
+            accion.fechaAccion = datetime.strptime(data['fechaAccion'], '%Y-%m-%d').date()
+
+        reclamo = Reclamo.query.get(accion.idReclamo)
+        if reclamo and reclamo.idTipoSolucion == accion.idTipoAccion:
+            reclamo.obsSolucion = accion.obsAccion
+
+        db.session.commit()
+        return jsonify({
+            "message": "Acción modificada correctamente",
+            "idAccion": accion.id
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400

@@ -6,6 +6,9 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
 from flask_bootstrap import Bootstrap
+from flask_jwt_extended import JWTManager
+from datetime import timedelta
+from flask_session import Session
 
 import pymysql
 
@@ -19,8 +22,19 @@ db = SQLAlchemy()
 # Session initialization
 login_manager = LoginManager()
 
+# JWTManager
+jwt = JWTManager()
+
 def create_app(config_name="development"):
     app = Flask(__name__, instance_relative_config=True)
+    app.config["JWT_SECRET_KEY"] = "cc38ac85979fb0ef6145be495ba1a2982925ba53c62fc64f"
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=8)
+    jwt.init_app(app)
+
+    app.config["SESSION_PERMANENT"] = False
+    app.config["SESSION_TYPE"] = "filesystem"  # Se guarda en una carpeta temporal del servidor
+    Session(app)
+
     app.config.from_object(app_config[config_name])
     app.config.from_pyfile('config.py')
     db.init_app(app)
@@ -46,6 +60,9 @@ def create_app(config_name="development"):
 
     from .auth import auth as auth_blueprint
     app.register_blueprint(auth_blueprint)
+
+    from .ia import ia as ia_blueprint
+    app.register_blueprint(ia_blueprint, url_prefix='/ia')
 
 
 

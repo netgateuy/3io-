@@ -66,7 +66,6 @@ class ProductFieldValue(db.Model):
         return  opciones
 
 class ProductContract(db.Model):
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     idcontract = db.Column(db.Integer, primary_key=True)
     idproduct = db.Column(db.Integer)
     idmoneda = db.Column(db.Integer)
@@ -81,8 +80,16 @@ class ProductContract(db.Model):
 
 class ProductClient(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    idclient  = db.Column(db.Integer, primary_key=True)
-    idproducto = db.Column(db.Integer, primary_key=True)
+    idclient = db.Column(db.Integer)
+    idproduct = db.Column(db.Integer)
+    idmoneda = db.Column(db.Integer)
+    fechainicio = db.Column(db.Date)
+    fechafin = db.Column(db.Date)
+    altapor = db.Column(db.String(256), unique=False)
+    idperiodo = db.Column(db.Integer)
+    importe = db.Column(db.Double)
+    identificador = db.Column(db.Text, unique=False)
+    observaciones = db.Column(db.Text, unique=False)
 
 class ContractProductFieldValue(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -95,7 +102,7 @@ class ClientProductFieldValue(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     idProduct = db.Column(db.Integer)
     idProductField = db.Column(db.Integer)
-    idContract = db.Column(db.Integer)
+    idProductClient = db.Column(db.Integer)
     value = db.Column(db.Text, unique=False)
 
 class ProductEquipment(db.Model):
