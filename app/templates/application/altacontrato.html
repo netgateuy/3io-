@@ -359,12 +359,13 @@
             jsonData["idoportunidad"] = document.getElementById("idoportunidad").value;
             jsonData["altapor"] = "3iO_COF";
 
-            //Hacemos el post del formulario
-            // Hacés el POST:
+            const token = localStorage.getItem('access_token');
+
             fetch('/api/contrato', {
               method: 'POST',
               headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                 'Authorization': `Bearer ${token}`,
               },
               body: JSON.stringify(jsonData) // convertís tu objeto a JSON real
             })
@@ -611,8 +612,13 @@
         const valorSeleccionado = select.value;
         if (!valorSeleccionado) return;
 
+        const token = localStorage.getItem('access_token');
+
         // Llamada al backend
-        fetch(`/api/product-price/${idproduct}/${idfield}/${encodeURIComponent(valorSeleccionado)}`)
+        fetch(`/api/product-price/${idproduct}/${idfield}/${encodeURIComponent(valorSeleccionado)}`,{
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    }})
             .then(r => r.json())
             .then(data => {
                 document.getElementById("importe").value = data.importe;
@@ -625,8 +631,13 @@
         const comboDestino = document.getElementById("campo_" + filterby);
         const valorSeleccionado = select.value;
 
+        const token = localStorage.getItem('access_token');
+
         // Llamada al backend
-        fetch(`/api/product-field-filter/${idproduct}/${filterby}/${valorSeleccionado}`)
+        fetch(`/api/product-field-filter/${idproduct}/${filterby}/${valorSeleccionado}`,{
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    }})
         .then(r => r.json())
         .then(data => {
             // 2. Limpiar opciones previas del combobox

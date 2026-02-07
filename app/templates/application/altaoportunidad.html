@@ -419,7 +419,13 @@
         // --- INICIO DE LÓGICA FETCH REAL ---
         try {
             // 3. Realizar la solicitud FETCH
-            const response = await fetch(url);
+            const token = localStorage.getItem('access_token');
+
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    }
+                });
 
             // 4. Verificar el código HTTP (Ej: 200 OK)
             if (!response.ok) {
@@ -510,8 +516,12 @@
           document.getElementById('idFormaPago').innerHTML = "";
 
           if (!idTipoPago) return; // si no seleccionó nada, no hace nada
+          const token = localStorage.getItem('access_token');
 
-          fetch(`/api/forma_pago/${idTipoPago}`)
+          fetch(`/api/forma_pago/${idTipoPago}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    }})
             .then(response => response.json())
             .then(data => {
               const subSelect = document.getElementById('idFormaPago');
@@ -601,10 +611,13 @@
 
             console.log( JSON.stringify(jsonData));
 
+            const token = localStorage.getItem('access_token');
+
             fetch('/api/oportunidad', {
               method: 'POST',
               headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
               },
               body: JSON.stringify(jsonData)
             })
@@ -630,7 +643,12 @@
             document.getElementById('idCiudad').innerHTML = "";
             let idPais  = document.getElementById('idPais').value;
             let idSubPais  = document.getElementById('idSubPais').value;
-            fetch(`/api/ciudades/${idPais}/${idSubPais}`)
+            const token = localStorage.getItem('access_token');
+
+            fetch(`/api/ciudades/${idPais}/${idSubPais}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    }})
             .then(response => response.json())
             .then(data => {
               const subSelect = document.getElementById('idCiudad');
@@ -649,7 +667,12 @@
         function loadsubpaises(idsubpais,idciudad){
             document.getElementById('idSubPais').innerHTML = "";
             let idPais  = document.getElementById('idPais').value;
-            fetch(`/api/subpaises/${idPais}`)
+            const token = localStorage.getItem('access_token');
+
+            fetch(`/api/subpaises/${idPais}`,{
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    }})
             .then(response => response.json())
             .then(data => {
               const subSelect = document.getElementById('idSubPais');
@@ -673,7 +696,12 @@
 
           if (!idTipoPago) return; // si no seleccionó nada, no hace nada
 
-          fetch(`/api/forma_pago/${idTipoPago}`)
+          const token = localStorage.getItem('access_token');
+
+          fetch(`/api/forma_pago/${idTipoPago}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    }})
             .then(response => response.json())
             .then(data => {
               const subSelect = document.getElementById('idFormaPago');
@@ -697,7 +725,12 @@
 
           if (!idCiudad) return; // si no seleccionó nada, no hace nada
 
-          fetch(`/api/ciudades/${idPais}/${idSubPais}`)
+          const token = localStorage.getItem('access_token');
+
+          fetch(`/api/ciudades/${idPais}/${idSubPais}`,{
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    }})
             .then(response => response.json())
             .then(data => {
               const subSelect = document.getElementById('idCiudad');

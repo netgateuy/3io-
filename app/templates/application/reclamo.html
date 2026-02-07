@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle del Reclamo | CRM Glass</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+            :root {
+                --sidebar-width: 260px;
+                --sidebar-closed-width: 80px;
+                --glass-bg-light: rgba(255, 255, 255, 0.8);
+                --glass-bg-dark: rgba(20, 37, 60, 0.85);
+                --primary-blue: #007bff;
+                --font-dark: #1e3a5f;
+                --font-light: #ffffff;
+                --shadow-soft: rgba(0, 0, 0, 0.15);
+                --transition-speed: 0.3s;
+                --logo-bg: rgba(255, 255, 255, 0.2);
+                --stage-color-prospecto: #FF9900;
+                --danger-red: #dc3545;
+                --success-green: #28a745;
+                /* Variable extra para inputs del wizard */
+                --glass-input: rgba(255, 255, 255, 0.5);
+            }
+
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body {
+                font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+                background: linear-gradient(135deg, #74a0e9 0%, #1f4788 100%);
+                display: flex;
+                min-height: 100vh;
+                color: var(--font-dark);
+            }
+
+           /* --- ESTILOS COMPARTIDOS (SIDEBAR, CONTENT, NAVBAR) --- */
+        .sidebar { width: var(--sidebar-width); background-color: var(--glass-bg-dark); color: white; height: 100vh; position: fixed; overflow-x: hidden; padding-top: 20px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-right: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 2px 0 15px rgba(0, 0, 0, 0.3); z-index: 100; transition: width var(--transition-speed) ease; display: flex; flex-direction: column; }
+        .sidebar.closed { width: var(--sidebar-closed-width); }
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; padding: 0 20px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); margin-bottom: 15px; width: var(--sidebar-width); padding-right: 15px; transition: width var(--transition-speed) ease; }
+        .sidebar.closed .sidebar-header { width: var(--sidebar-closed-width); justify-content: center; padding: 0 0 20px 0; }
+        .sidebar.closed .logo-container { display: none; }
+        .logo-container { background-color: var(--logo-bg); border-radius: 8px; padding: 5px; display: flex; align-items: center; justify-content: center; }
+        .logo-container img { max-height: 40px; width: auto; }
+        .toggle-btn { background: none; color: white; border: 1px solid rgba(255, 255, 255, 0.4); padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 1.2em; display: flex; align-items: center; justify-content: center; transition: transform var(--transition-speed) ease; }
+        .sidebar.closed .toggle-btn { transform: rotate(180deg); }
+        .menu ul { list-style: none; }
+        .menu li a { display: flex; align-items: center; padding: 12px 15px; text-decoration: none; color: #dbe4f1; border-radius: 8px; margin: 5px 10px; line-height: 1.2; }
+        .menu li a .bi { font-size: 1.3em; margin-right: 15px; width: 25px; text-align: center; line-height: 0; }
+        .sidebar.closed .menu li a span { display: none; }
+        .sidebar.closed .menu li a { justify-content: center; padding: 12px 0; margin: 5px 15px; }
+
+            .menu ul { list-style: none; }
+            .menu li a { display: flex; align-items: center; padding: 12px 15px; text-decoration: none; color: #dbe4f1; border-radius: 8px; margin: 5px 10px; transition: 0.2s; }
+            .menu li a .bi { font-size: 1.3em; margin-right: 15px; width: 25px; text-align: center; }
+            .sidebar.closed .menu li a span { display: none; }
+            .sidebar.closed .menu li a { justify-content: center; padding: 12px 0; margin: 5px 15px; }
+            .menu li a.active { background-color: var(--primary-blue); box-shadow: 0 2px 8px rgba(0, 123, 255, 0.5); }
+            .menu li a:hover:not(.active) { background: rgba(255,255,255,0.1); }
+
+            /* --- CONTENT AREA --- */
+            .content { margin-left: var(--sidebar-width); flex-grow: 1; padding: 25px 30px; width: calc(100% - var(--sidebar-width)); transition: margin-left var(--transition-speed) ease, width var(--transition-speed) ease; }
+            .content.shifted { margin-left: var(--sidebar-closed-width); width: calc(100% - var(--sidebar-closed-width)); }
+
+            .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; border-radius: 12px; background-color: var(--glass-bg-light); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 4px 30px var(--shadow-soft); margin-bottom: 30px; }
+            .navbar input { padding: 10px 15px; width: 300px; border: none; border-radius: 20px; background: white; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); }
+
+            /* --- CARDS & TABLES --- */
+            .glass-card { background-color: var(--glass-bg-light); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 4px 30px var(--shadow-soft); border-radius: 15px; padding: 25px; margin-bottom: 25px; }
+
+            .btn { padding: 10px 18px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
+            .btn-add { background: var(--primary-blue); color: white; }
+            .btn-modify-light { background: rgba(0, 123, 255, 0.1); color: var(--primary-blue); border: 1px solid rgba(0, 123, 255, 0.2); padding: 6px 12px; font-size: 0.85em; margin-right: 5px; }
+
+            .services-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+            .services-table th { text-align: left; padding: 12px 15px; font-size: 0.8em; color: #666; text-transform: uppercase; border-bottom: 1px solid rgba(0,0,0,0.05); }
+            .services-table td { height: 45px; padding: 8px 15px; border-bottom: 1px solid rgba(0,0,0,0.05); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+            .services-table tr:hover { background: rgba(255,255,255,0.4); }
+
+            .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75em; font-weight: bold; }
+            .status-active { background: rgba(40, 167, 69, 0.2); color: var(--success-green); }
+            .status-open { background: rgba(0, 123, 255, 0.2); color: var(--primary-blue); }
+
+            /* --- NUEVOS ESTILOS PARA EL WIZARD (MODAL) --- */
+            .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 1001; }
+
+            .modal-content {
+                background-color: var(--glass-bg-light);
+                backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.5);
+                border-radius: 18px; padding: 30px; width: 95%; max-width: 550px;
+                box-shadow: 0 8px 30px var(--shadow-soft);
+                display: flex; flex-direction: column;
+            }
+
+            /* Indicadores de Pasos */
+            .step-indicators { display: flex; justify-content: space-between; margin-bottom: 25px; position: relative; padding: 0 15px; }
+            .step-indicators::before { content: ''; position: absolute; top: 15px; left: 20px; right: 20px; height: 2px; background: rgba(0,0,0,0.1); z-index: 0; }
+
+            .step-dot {
+                width: 32px; height: 32px; border-radius: 50%;
+                background: #ddd; color: white;
+                display: flex; align-items: center; justify-content: center;
+                font-weight: bold; position: relative; z-index: 1;
+                transition: all 0.3s ease; border: 2px solid white;
+            }
+            .step-dot.active { background: var(--primary-blue); transform: scale(1.1); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+            .step-dot.completed { background: var(--success-green); }
+
+            /* Contenedores de cada paso */
+            .wizard-step { display: none; animation: fadeIn 0.3s; }
+            .wizard-step.active { display: block; }
+            @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+            /* Estilos de inputs dentro del wizard */
+            .w-input { width: 100%; padding: 12px; border: 1px solid rgba(0,0,0,0.1); border-radius: 10px; background: var(--glass-input); margin-bottom: 15px; outline: none; }
+            .w-input:focus { border-color: var(--primary-blue); background: white; }
+
+            /* Lista de resultados (Paso 2) */
+            .results-list { max-height: 200px; overflow-y: auto; background: rgba(255,255,255,0.4); border-radius: 10px; border: 1px solid rgba(0,0,0,0.05); }
+            .result-item { padding: 12px; border-bottom: 1px solid rgba(0,0,0,0.05); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+            .result-item:hover { background: rgba(0,123,255,0.1); }
+            .result-item.selected { background: var(--primary-blue); color: white; }
+            .result-item.selected small { color: rgba(255,255,255,0.8); }
+
+            /* SCROLL SOLO PARA PASO 3 */
+            #step3 {
+                max-height: 45vh;     /* ajustable */
+                overflow-y: auto;
+                padding-right: 5px;
+            }
+
+            /* Scroll moderno */
+            #step3::-webkit-scrollbar {
+                width: 6px;
+            }
+            #step3::-webkit-scrollbar-thumb {
+                background: rgba(0, 123, 255, 0.4);
+                border-radius: 10px;
+            }
+            #step3::-webkit-scrollbar-track {
+                background: transparent;
+            }
+
+            /* Estilo para el input cuando es VÁLIDO (Verde) */
+            .w-input.is-valid {
+                border-color: #28a745 !important;
+                padding-right: calc(1.5em + 0.75rem); /* Espacio para el icono */
+                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2328a745' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+                background-repeat: no-repeat;
+                background-position: right calc(0.375em + 0.1875rem) center;
+                background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+            }
+
+            /* Estilo para el input cuando es INVÁLIDO (Rojo) */
+            .w-input.is-invalid {
+                border-color: #dc3545 !important;
+                padding-right: calc(1.5em + 0.75rem);
+                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+                background-repeat: no-repeat;
+                background-position: right calc(0.375em + 0.1875rem) center;
+                background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+            }
+
+            /* Opcional: si quieres que el fondo se pinte suavemente */
+            .w-input.is-valid:focus {
+                box-shadow: 0 0 0 0.25rem rgba(40, 167, 69, 0.25);
+            }
+
+            .w-input.is-invalid:focus {
+                box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+            }
+
+/* Contenedor para cada fila de formulario */
+.field-container {
+    margin-bottom: 20px; /* Aquí controlas la separación con el siguiente campo */
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Ajuste fino para los labels */
+.field-label {
+    font-size: 0.8em;
+    font-weight: bold;
+    color: #555;
+    margin-bottom: 5px; /* Separación pequeña con el input */
+}
+
+/* El input no debe tener margen inferior propio */
+.w-input {
+    margin-bottom: 0 !important;
+}
+
+/* El error solo tiene un margen superior mínimo */
+.error-text {
+    font-size: 0.8em;
+    color: #dc3545;
+    margin-top: 4px;
+    font-weight: 500;}
+        /* --- TARJETAS GLASS --- */
+        .glass-card {
+            background-color: var(--glass-bg-light);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: var(--shadow-soft);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        /* --- BOTONES --- */
+        .btn { padding: 8px 16px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; text-decoration: none; font-size: 0.9em; }
+        .btn-primary { background: var(--primary-blue); color: white; }
+        /* Botón transparente para el menú */
+        .btn-menu { background: transparent; color: var(--font-dark); font-size: 1.2em; border: none; margin-right: 15px; cursor: pointer; }
+
+        .btn-glass { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); }
+        .btn-glass:hover { background: rgba(255,255,255,0.3); }
+
+        /* --- ESTILOS DE DATOS --- */
+        .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 25px; }
+
+        .card-title {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+            font-size: 1.1em; color: var(--primary-blue); font-weight: 700;
+            border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 10px;
+        }
+
+        .info-row { display: flex; align-items: flex-start; margin-bottom: 15px; }
+        .info-icon {
+            width: 32px; height: 32px;
+            background: rgba(0, 123, 255, 0.1); color: var(--primary-blue);
+            border-radius: 8px; display: flex; align-items: center; justify-content: center;
+            margin-right: 15px; font-size: 1.1em;
+        }
+        .info-data { display: flex; flex-direction: column; }
+        .info-label { font-size: 0.75em; text-transform: uppercase; color: var(--font-gray); font-weight: 700; margin-bottom: 2px; letter-spacing: 0.5px; }
+        .info-value { font-size: 1em; color: var(--font-dark); font-weight: 500; }
+        .info-value a { color: var(--primary-blue); text-decoration: none; border-bottom: 1px dotted currentColor; }
+
+        /* --- ESTADO DEL RECLAMO --- */
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 6px 16px; border-radius: 50px;
+            font-size: 0.9em; font-weight: 700; letter-spacing: 0.5px;
+            text-transform: uppercase;
+            background: white; color: var(--primary-blue);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .st-abierto { color: #007bff; border: 2px solid #007bff; }
+        .st-pendiente { color: #d97706; border: 2px solid #d97706; }
+        .st-resuelto { color: #198754; border: 2px solid #198754; }
+
+        /* --- TIMELINE --- */
+        .timeline { position: relative; padding-left: 20px; margin-top: 20px; }
+        .timeline::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: rgba(0,0,0,0.1); }
+        .timeline-item { position: relative; padding-left: 20px; margin-bottom: 25px; }
+        .timeline-item::before { content: ''; position: absolute; left: -5px; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: var(--primary-blue); border: 2px solid white; }
+        .timeline-content { background: rgba(255,255,255,0.5); padding: 15px; border-radius: 10px; font-size: 0.95em; }
+        .timeline-date { font-size: 0.8em; color: var(--font-gray); margin-bottom: 5px; display: block; }
+
+        /* --- TARJETA DE SOLUCIÓN --- */
+        .solution-card {
+            border-left: 4px solid var(--success-green);
+            background: linear-gradient(to right, rgba(40, 167, 69, 0.05), var(--glass-bg-light));
+        }
+
+        .solution-header {
+            color: var(--success-green);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.1em;
+        }
+
+        .solution-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .solution-obs-box {
+            background: rgba(255, 255, 255, 0.4);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+        /* --- ESTILOS FALTANTES PARA MODAL ARCHIVO --- */
+    .form-field-embed {
+        margin-bottom: 15px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-field-embed label {
+        font-size: 0.85em;
+        font-weight: bold;
+        color: #555;
+        margin-bottom: 5px;
+    }
+
+    .form-field-embed input,
+    .form-field-embed select,
+    .form-field-embed textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid rgba(0,0,0,0.1);
+        border-radius: 10px;
+        background: var(--glass-input);
+        outline: none;
+        font-family: inherit;
+    }
+
+    .form-field-embed input:focus,
+    .form-field-embed select:focus,
+    .form-field-embed textarea:focus {
+        border-color: var(--primary-blue);
+        background: white;
+    }
+
+    .modal-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid rgba(0,0,0,0.1);
+    }
+
+    /* Reutilizando estilos de botones existentes pero mapeando las clases nuevas */
+    .action-button {
+        padding: 10px 18px;
+        border-radius: 10px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .btn-save {
+        background: var(--primary-blue);
+        color: white;
+    }
+
+    .btn-cancel {
+        background: transparent;
+        border: 1px solid #ccc;
+        color: var(--font-dark);
+    }
+    .oportunidad-table th:nth-child(1) { width: 5%; }
+.oportunidad-table th:nth-child(5) { width: 15%; }
+.oportunidad-table th:nth-child(6) { width: 10%; }
+.highlight-id {
+    color: var(--stage-color-prospecto) !important;
+    font-weight: 900 !important;
+    text-shadow: 0 0 5px rgba(255, 193, 7, 0.7);
+}
+
+table th {
+    white-space: nowrap;
+}
+
+.products-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 15px;
+            font-size: 0.9em;
+            overflow: hidden;
+            border-radius: 12px;
+        }
+        .products-table th, .products-table td {
+            border: none;
+            padding: 12px 15px;
+            text-align: left;
+        }
+        .products-table th {
+            background-color: rgba(0, 123, 255, 0.2);
+            color: var(--font-dark);
+            font-weight: 700;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        /* Redondear las esquinas solo del encabezado */
+        .products-table thead tr:first-child th:first-child {
+            border-top-left-radius: 12px;
+        }
+        .products-table thead tr:first-child th:last-child {
+            border-top-right-radius: 12px;
+        }
+
+        /* Estilos de las Filas de Datos */
+        .products-table tbody tr {
+            transition: background-color 0.2s;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+        }
+        .products-table tbody tr:hover {
+            background-color: rgba(0, 123, 255, 0.05);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+    </style>
+     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+</head>
+<body>
+
+  {% include '/application/menu.html' %}
+
+    <main class="content" id="content">
+        <header class="navbar">
+            <div style="display: flex; align-items: center;">
+                <button id="toggleBtn" class="btn-menu">
+                    <i class="bi bi-list"></i>
+                </button>
+
+                <div style="display: flex; align-items: center; gap: 10px; border-left: 1px solid rgba(0,0,0,0.1); padding-left: 15px;">
+                    <i class="bi bi-search" style="color: var(--font-gray);"></i>
+                    <input type="text" placeholder="Buscar..." style="border: none; background: transparent; outline: none; width: 200px;">
+                </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span style="font-size: 0.9em; font-weight: 600;">Juan Miranda</span>
+                <div style="width: 35px; height: 35px; background: var(--primary-blue); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 0.85em;">JM</div>
+            </div>
+        </header>
+
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px;">
+            <div style="color: white;">
+                <nav style="margin-bottom: 10px;">
+                    <a href="/application/reclamos" style="color: rgba(255,255,255,0.8); text-decoration: none; font-size: 0.85em;">
+                        <i class="bi bi-chevron-left"></i> Volver al listado
+                    </a>
+                </nav>
+
+                <h1 style="font-size: 2.2em; margin-bottom: 12px; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    Reclamo #REC-{{ reclamo.id }}
+                </h1>
+
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div class="status-badge
+                        {% if cliente.fechaSolucion != None %}st-resuelto
+                        {% elif reclamo.estado == 'Pendiente' %}st-abierto
+                        {% else %}st-pendiente{% endif %}">
+                        <i class="bi bi-circle-fill" style="font-size: 0.6em;"></i> {{ reclamo.estado }}
+                    </div>
+
+                    <span style="opacity: 0.9; font-size: 0.9em;">
+                        <i class="bi bi-calendar3"></i> Registrado: {{ reclamo.fechaAlta }}
+                    </span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+               <button class="btn btn-glass" onclick="abrirModalEditar()">
+                    <i class="bi bi-pencil"></i> Editar
+                </button>
+                {% if cliente.fechaSolucion == None %}
+                <button id="btnResolver" class="btn" style="background: #28a745; color: white;">
+                    <i class="bi bi-check-circle"></i> Resolver
+                </button>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if reclamo.fechaSolucion %}
+        <div class="glass-card ">
+            <div class="solution-header">
+                <i class="bi bi-check-circle-fill"></i> Resolución del Reclamo
+            </div>
+
+            <div class="solution-details">
+                <div class="info-data">
+                    <span class="info-label">Fecha de Cierre</span>
+                    <span class="info-value">{{ reclamo.fechaSolucion }}</span>
+                </div>
+                <div class="info-data">
+                    <span class="info-label">Resuelto Por</span>
+                    <span class="info-value">
+                        <i class="bi bi-person-check" style="margin-right:5px;"></i> {{ reclamo.solucionPor }}
+                    </span>
+                </div>
+                <div class="info-data">
+                    <span class="info-label">Tipo de Solución</span>
+                    <span class="info-value" style="color: var(--success-green); font-weight: bold;">
+                        {{ tipoSolucion.descripcion }}
+                    </span>
+                </div>
+            </div>
+            <div class="info-data">
+                <span class="info-label" style="margin-bottom: 8px;">Detalle de la Solución</span>
+                <div class="solution-obs-box">
+                    {{ reclamo.obsSolucion }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        <div class="detail-grid">
+            <div class="glass-card">
+                <div class="card-title">
+                    <i class="bi bi-person-badge-fill"></i> Datos del Cliente
+                </div>
+                <div class="info-row">
+                    <div class="info-icon"><i class="bi bi-building"></i></div>
+                    <div class="info-data">
+                        <span class="info-label">Cliente / Razón Social</span>
+                        <span class="info-value">{{ cliente.cliNombre }} {{ cliente.cliApellido }}</span>
+                        {% if cliente.cliRazon %}
+                        <span class="info-value" style="font-size: 0.85em; color: var(--font-gray);">{{ cliente.cliRazon }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-icon"><i class="bi bi-phone"></i></div>
+                    <div class="info-data">
+                        <span class="info-label">Teléfonos</span>
+                        <span class="info-value">
+                            <a href="tel:{{ reclamo.celularAviso }}">{{ reclamo.celularAviso }}</a>
+                        </span>
+                        <span class="info-value">
+                            <a href="tel:{{ reclamo.telefonoAviso }}">{{ reclamo.telefonoAviso }}</a>
+                        </span>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-icon"><i class="bi bi-envelope"></i></div>
+                    <div class="info-data">
+                        <span class="info-label">Correo Electrónico</span>
+                        <span class="info-value">
+                            <a href="mailto:{{ reclamo.emailAviso }}">{{ reclamo.emailAviso }}</a>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="glass-card">
+                <div class="card-title">
+                    <i class="bi bi-hdd-network-fill"></i> Servicio Afectado
+                </div>
+                <div class="info-row">
+                    <div class="info-icon"><i class="bi bi-router"></i></div>
+                    <div class="info-data">
+                        <span class="info-label">Producto</span>
+                        <span class="info-value">{{ tipoProducto.name }}</span>
+                        <span class="info-value" style="font-size: 0.85em; background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 4px; width: fit-content; margin-top: 3px;">
+                            ID: {{ producto.identificador }}
+                        </span>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-icon" style="color: #dc3545; background: rgba(220, 53, 69, 0.1);"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                    <div class="info-data">
+                        <span class="info-label">Tipo de Falla</span>
+                        <span class="info-value" style="color: #dc3545; font-weight: 700;">{{ tipoReclamo.descripcion }}</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 20px; padding-left: 47px;">
+                    <div class="info-data">
+                        <span class="info-label">Prioridad</span>
+                        <span class="info-value">{{ prioridad.descripcion }}</span>
+                    </div>
+                    <div class="info-data">
+                        <span class="info-label">Origen</span>
+                        <span class="info-value">{{ reclamo.origen }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="glass-card">
+            <div class="card-title" style="border: none; padding-bottom: 0; margin-bottom: 10px;">
+                <i class="bi bi-card-text"></i> Descripción del Problema
+            </div>
+            <div style="background: rgba(255,255,255,0.6); padding: 15px 20px; border-radius: 10px; line-height: 1.5; color: var(--font-dark); border-left: 4px solid var(--primary-blue);">
+                {{ reclamo.obsAlta }}
+            </div>
+        </div>
+        <div class="glass-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2><i class="bi bi-file-text"></i> Documentos asociados</h2>
+                <button type="button" class="action-button btn-add" onclick="abrirModalArchivo()">
+                    <i class="bi bi-file-earmark-plus"></i> Añadir nuevo documento
+                </button>
+            </div>
+            <table class="products-table oportunidad-table">
+                <thead>
+                    <tr>
+                        <th>Id.</th>
+                        <th>Fecha alta</th>
+                        <th>Alta por</th>
+                        <th>Observaciones</th>
+                        <th>Tipo</th>
+                        <th>Formato</th>
+                        <th>Archivo</th>
+                    </tr>
+                </thead>
+                <tbody id="contratos-lista">
+                    {% if archivos|length > 0 %}
+                        {% for archivo, tipoarchivo in archivos %}
+                            <tr>
+                                <td>{{ archivo.id }}</td>
+                                <td>{{ archivo.fechaalta }}</td>
+                                <td>{{ archivo.altapor }}</td>
+                                <td>{{ archivo.observaciones }}</td>
+                                <td>{{ tipoarchivo.nombre }}</td>
+                                <td>
+                                    {% set ext = archivo.filename.split('.')[-1]|lower %}
+
+                                    {% if ext in ['jpg', 'jpeg', 'png'] %}
+                                        <i class="bi bi-image"></i>
+                                    {% elif ext == 'pdf' %}
+                                        <i class="bi bi-filetype-pdf"></i>
+                                    {% elif ext in ['mp3', 'wav'] %}
+                                        <i class="bi bi-music-note-beamed"></i>
+                                    {% else %}
+                                        <i class="bi bi-file-earmark"></i>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="/application/archivo-reclamo/{{ archivo.idreclamo }}/{{ archivo.id }}" target="_blank">
+                                        {{ archivo.filename }}
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: #888;">Aún no hay archivos asociados a esta oportunidad.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="glass-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 15px; margin-bottom: 15px;">
+                <h3 style="font-size: 1.1em; color: var(--primary-blue); font-weight: 700;">
+                    <i class="bi bi-clock-history"></i> Historial de Acciones
+                </h3>
+                <button id="btnNuevaAccion" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.85em;">
+                    <i class="bi bi-plus-lg"></i> Nueva Acci&oacute;n
+                </button>
+            </div>
+            <div class="timeline">
+                {% for accion, tipoaccion in acciones %}
+                <div class="timeline-item">
+                    <span class="timeline-date">{{ accion.fechaAccion }} - <strong>{{ accion.accionPor }}</strong></span>
+                    <div class="timeline-content">
+                       {{ tipoaccion.descripcion }}: {{ accion.obsAccion }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </main>
+    <div id="modalCerrar" class="modal-overlay">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 20px; color: var(--primary-blue);">
+                <i class="bi bi-check-circle-fill"></i> Cerrar Reclamo
+            </h2>
+            <form action="/reclamos/cerrar" id="formcerrar" name="formcerrar"  method="POST"> <input type="hidden" name="reclamo_id" value="{{ reclamo.id }}">
+                <input type="hidden" name="idTipoReclamo" value="{{ reclamo.idTipoReclamo }}">
+                <input type="hidden" name="idReclamo" value="{{ reclamo.id }}">
+                <div class="field-container">
+                    <label class="field-label">Tipo de Solución</label>
+                    <select name="idTipoSolucion" class="w-input" required>
+                        <option value="">Seleccione una solución...</option>
+                        {% for sol in tiposSolucion %}
+                            <option value="{{ sol.id }}">{{ sol.descripcion }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="field-container">
+                    <label class="field-label">Observaciones de Cierre</label>
+                    <textarea name="obsSolucion" class="w-input" rows="4" placeholder="Describa cómo se solucionó..." required></textarea>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+                    <button type="button" class="btn btn-glass" style="color: var(--font-dark); border-color: #ccc;" onclick="closeModal('modalCerrar')">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="cerrarreclamo()">Cerrar Reclamo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="modalarchivo" class="modal-overlay">
+        <div class="modal-content">
+            <h3><i class="bi bi-file-earmark-arrow-up"></i> Subir nuevo archivo</h3>
+            <div id="formularioArchivo">
+                <div class="form-field-embed">
+                    <label for="producto_seleccionado">Tipo de archivo (*)</label>
+                    <select id="idtipoarchivo" name="idtipoarchivo" required>
+                        <option value="">-- Seleccione un tipo --</option>
+                        {% for tipoarchivo in tiposarchivos %}
+                        <option value="{{tipoarchivo.id}}">{{tipoarchivo.nombre}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-field-embed">
+                    <label for="producto_seleccionado">Archivo</label>
+                    <input type="file" name="archivo" accept=".pdf, .jpg, .jpeg, .png, .wav, .mp3">
+                </div>
+                <div class="form-field-embed"><label for="producto_clausula">Observaciones</label><textarea id="observacionesarchivo" name="observacionesarchivo" rows="1" placeholder="Observaciones del archivo..."></textarea></div>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="action-button btn-save" onclick="agregarArchivo()">Agregar</button>
+                <button type="button" class="action-button btn-cancel" onclick="cerrarModalArchivo()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+    <div id="modalAccion" class="modal-overlay">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 20px; color: var(--primary-blue);">
+                <i class="bi bi-journal-plus"></i> Registrar Acción
+            </h2>
+            <form action="/reclamos/accion" id="formAccion" method="POST">
+                <input type="hidden" name="idTipoReclamo" value="{{ reclamo.idTipoReclamo }}">
+                <input type="hidden" name="idReclamo" value="{{ reclamo.id }}">
+                <div class="field-container">
+                    <label class="field-label">Tipo de Acción</label>
+                    <select name="idTipoAccion" id="idTipoAccion"  class="w-input" required>
+                        <option value="">Seleccione tipo de acción...</option>
+                        {% for accion in tiposAccion %}
+                            <option value="{{ accion.id }}">{{ accion.descripcion }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field-container">
+                    <label class="field-label">Detalle de la Acción</label>
+                    <textarea name="obsAccion" id="obsAccion" class="w-input" rows="4" placeholder="Detalles de la gestión..." required></textarea>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+                    <button type="button" class="btn btn-glass" style="color: var(--font-dark); border-color: #ccc;" onclick="closeModal('modalAccion')">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="altaaccion()">Guardar Acción</button>
+                </div>
+            </form>
+        </div>
+    </div>
+      <div id="modalEditar" class="modal-overlay">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 20px; color: var(--primary-blue);">
+                <i class="bi bi-pencil-square"></i> Editar Reclamo
+            </h2>
+            <form id="formEditar">
+                <input type="hidden" name="idReclamo" value="{{ reclamo.id }}">
+
+                <div style="display: flex; gap: 15px;">
+                    <div class="field-container" style="flex: 1;">
+                        <label class="field-label">Celular de Aviso</label>
+                        <input type="tel" name="celularAviso" class="w-input" value="{{ reclamo.celularAviso }}">
+                    </div>
+                    <div class="field-container" style="flex: 1;">
+                        <label class="field-label">Teléfono de Aviso</label>
+                        <input type="tel" name="telefonoAviso" class="w-input" value="{{ reclamo.telefonoAviso }}">
+                    </div>
+                </div>
+
+                <div class="field-container">
+                    <label class="field-label">Email de Contacto</label>
+                    <input type="email" name="emailAviso" class="w-input" value="{{ reclamo.emailAviso }}">
+                </div>
+
+                <div class="field-container">
+                    <label class="field-label">Prioridad</label>
+                    <select name="idPrioridad" class="w-input">
+                        {% for p in prioridades %}
+                            <option value="{{p.id}}" {% if p.id == prioridad.id %}selected{% endif %}>{{p.descripcion}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="field-container">
+                    <label class="field-label">Descripción del Problema</label>
+                    <textarea name="obsAlta" class="w-input" rows="5">{{ reclamo.obsAlta }}</textarea>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 15px;">
+                    <button type="button" class="btn btn-glass" style="color: var(--font-dark); border-color: #ccc;" onclick="closeModal('modalEditar')">
+                        Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="guardarEdicion()">
+                        <i class="bi bi-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+        const toggleBtn = document.getElementById('toggleBtn');
+        const sidebar = document.querySelector('.sidebar');
+        const content = document.getElementById('content');
+
+        if(toggleBtn && sidebar && content) {
+            toggleBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('closed');
+                content.classList.toggle('shifted');
+            });
+        }
+
+        function abrirModalArchivo() {
+            const modal = document.getElementById('modalarchivo');
+            // 2. Mostrar el modal
+            modal.style.display = 'flex';
+        }
+
+        function agregarArchivo() {
+            // Crear el FormData
+            const formData = new FormData();
+
+            //Obtenemos el token
+            const token = localStorage.getItem('access_token');
+
+            // Obtener valores
+            const idtipoarchivo = document.getElementById("idtipoarchivo").value;
+            const archivo = document.querySelector("input[name='archivo']").files[0];
+            const observaciones = document.getElementById("observacionesarchivo").value;
+            const idReclamo = {{ reclamo.id }};
+
+            // Validaciones simples
+            if (!idtipoarchivo) {
+                alert("Debe seleccionar un tipo de archivo");
+                return;
+            }
+            if (!archivo) {
+                alert("Debe seleccionar un archivo");
+                return;
+            }
+
+            // Agregar los datos al formData
+            formData.append("idtipoarchivo", idtipoarchivo);
+            formData.append("idReclamo", idReclamo);
+            formData.append("archivo", archivo);
+            formData.append("observacionesarchivo", observaciones);
+
+            // Hacer POST (ajustar la URL donde procesás el archivo en Flask)
+            fetch("/api/reclamo/subir-archivo", {
+                headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Podés personalizar qué hacer con la respuesta
+
+                alert("Archivo subido correctamente");
+                cerrarModalArchivo();
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                alert("Hubo un error al subir el archivo");
+            });
+        }
+
+        function cerrarModalArchivo() {
+            document.getElementById('modalarchivo').classList.remove('active');
+            document.getElementById('observacionesarchivo').value = '';
+        }
+
+        function altaaccion(){
+            const formAccion = document.getElementById('formAccion');
+             const formData = new FormData(formAccion);
+                const data = {
+                    idReclamo: formData.get('idReclamo'),
+                    accionPor: 'user',
+                    idTipoReclamo: formData.get('idTipoReclamo'),
+                    idTipoAccion: formData.get('idTipoAccion'),
+                    obsAccion: formData.get('obsAccion'),
+                    idHoras: formData.get('idHoras'),
+                    idMinutos: formData.get('idMinutos'),
+                };
+
+                const token = localStorage.getItem('access_token');
+
+                // 2. Enviar a la API
+                fetch('/api/reclamo/accion', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Éxito: Recargar la página para ver la nueva acción en el historial
+                        window.location.reload();
+                    } else {
+                        alert("Hubo un error al guardar la acción.");
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert("Error de conexión con el servidor.");
+                });
+        }
+
+         function cerrarreclamo(){
+            const formCerrar = document.getElementById('formcerrar');
+             const formData = new FormData(formCerrar);
+                const data = {
+                    idReclamo: formData.get('idReclamo'),
+                    solucionPor: 'user',
+                    idTipoReclamo: formData.get('idTipoReclamo'),
+                    idTipoSolucion: formData.get('idTipoSolucion'),
+                    obsSolucion: formData.get('obsSolucion'),
+                };
+
+                const token = localStorage.getItem('access_token');
+
+                // 2. Enviar a la API
+                fetch('/api/reclamo/cerrar', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Éxito: Recargar la página para ver la nueva acción en el historial
+                        window.location.reload();
+                    } else {
+                        alert("Hubo un error al intentar cerrar el reclamo.");
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert("Error de conexión con el servidor.");
+                });
+        }
+
+        // Referencias a los botones y modales
+        const btnResolver = document.getElementById('btnResolver');
+        const modalCerrar = document.getElementById('modalCerrar');
+
+        const btnNuevaAccion = document.getElementById('btnNuevaAccion');
+        const modalAccion = document.getElementById('modalAccion');
+
+        // Función para cerrar modal por ID
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Evento para abrir Cerrar Reclamo
+        if(btnResolver) {
+            btnResolver.addEventListener('click', (e) => {
+                e.preventDefault();
+                modalCerrar.style.display = 'flex'; // Usamos flex para centrar con tus estilos
+            });
+        }
+
+        // Evento para abrir Nueva Acción
+        if(btnNuevaAccion) {
+            btnNuevaAccion.addEventListener('click', (e) => {
+                e.preventDefault();
+                modalAccion.style.display = 'flex';
+            });
+        }
+
+        // Cerrar al hacer click fuera del contenido (en el overlay)
+        window.onclick = function(event) {
+            if (event.target == modalCerrar) {
+                modalCerrar.style.display = "none";
+            }
+            if (event.target == modalAccion) {
+                modalAccion.style.display = "none";
+            }
+        }
+
+
+        const modalEditar = document.getElementById('modalEditar');
+
+    function abrirModalEditar() {
+        modalEditar.style.display = 'flex';
+    }
+
+    // Aseguramos que el clic fuera del modal también lo cierre
+    window.addEventListener('click', function(event) {
+        if (event.target == modalEditar) {
+            closeModal('modalEditar');
+        }
+    });
+
+    function guardarEdicion() {
+        const formEditar = document.getElementById('formEditar');
+        const formData = new FormData(formEditar);
+        const idReclamo = formData.get('idReclamo');
+
+        // Construir objeto JSON
+        const data = {
+            idReclamo: formData.get('idReclamo'),
+            celularAviso: formData.get('celularAviso'),
+            telefonoAviso: formData.get('telefonoAviso'),
+            emailAviso: formData.get('emailAviso'),
+            idPrioridad: formData.get('idPrioridad'), // Asegúrate de que tu backend reciba esto
+            obsAlta: formData.get('obsAlta')
+        };
+
+        const token = localStorage.getItem('access_token');
+
+        // Enviar a la API (Ajusta la URL a tu ruta real de Flask/Backend)
+        fetch(`/api/reclamo/${idReclamo}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (response.ok) {
+                // Opción A: Recargar página
+                window.location.reload();
+
+                // Opción B (Más elegante): Actualizar DOM sin recargar
+                // alert("Datos actualizados correctamente");
+                // closeModal('modalEditar');
+            } else {
+                alert("Error al actualizar los datos del reclamo.");
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("Error de conexión al intentar guardar.");
+        });
+    }
+    </script>
+</body>
+</html>

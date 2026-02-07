@@ -48,28 +48,74 @@
 
 <script>
     async function logout() {
-    const token = localStorage.getItem('access_token');
+        const token = localStorage.getItem('access_token');
 
-    try {
-        const response = await fetch("/api/logout", {
-            method: "DELETE",
-            headers: {
-                "Authorization": `Bearer ${token}`
+        try {
+            const response = await fetch("/api/logout", {
+                method: "DELETE",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                console.log("Sesión invalidada en el servidor");
+            } else {
+                console.error("Error al invalidar el token en el servidor");
             }
-        });
-
-        if (response.ok) {
-            console.log("Sesión invalidada en el servidor");
-        } else {
-            console.error("Error al invalidar el token en el servidor");
+        } catch (error) {
+            console.error("Error de red:", error);
+        } finally {
+            // IMPORTANTE: Siempre limpiar el cliente y redirigir,
+            // incluso si el servidor falla (el token expirará igual)
+            localStorage.removeItem("token");
+            window.location.href = "/application/login";
         }
-    } catch (error) {
-        console.error("Error de red:", error);
-    } finally {
-        // IMPORTANTE: Siempre limpiar el cliente y redirigir,
-        // incluso si el servidor falla (el token expirará igual)
-        localStorage.removeItem("token");
-        window.location.href = "/application/login";
     }
-}
+
+
+    function verificarSesion() {
+        const token = localStorage.getItem('access_token');
+
+        // 1. Si no hay token, mandar al login (salvo que ya estemos ahí)
+        if (!token) {
+            if (window.location.pathname !== '/login') {
+                window.location.href = '/login';
+            }
+            return;
+        }
+
+        try {
+            // 2. Decodificar el payload del token (la parte del medio)
+            // El token es: Header.Payload.Signature
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+
+            const payload = JSON.parse(jsonPayload);
+
+            // 3. Obtener fecha de expiración y fecha actual
+            const expDate = payload.exp; // Viene en SEGUNDOS desde 1970
+            const currentDate = Math.floor(Date.now() / 1000); // Date.now() es ms, pasamos a segundos
+
+            console.log(`Expira: ${expDate}, Ahora: ${currentDate}, Restan: ${expDate - currentDate} segs`);
+
+            // 4. Comprobar si ya pasó la hora
+            if (currentDate >= expDate) {
+                console.warn("El token de 8 horas ha vencido.");
+                localStorage.removeItem('access_token');
+                window.location.href = '/application/login';
+            }
+
+        } catch (e) {
+            console.error("Error al leer el token", e);
+            // Si el token está corrupto, mejor borrarlo y salir
+            localStorage.removeItem('access_token');
+            window.location.href = '/application/login';
+        }
+    }
+
+    verificarSesion(); //Verifica si la session esta activa
 </script>

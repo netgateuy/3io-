@@ -20,9 +20,18 @@ class ProductField(db.Model):
     visible = db.Column(BIT(1))
     identifier = db.Column(BIT(1))
     pricefilter = db.Column(BIT(1))
+    automatic = db.Column(BIT(1))
     filterby = db.Column(db.Integer)
     regex = db.Column(db.Text, unique=False)
     order = db.Column(db.Integer)
+
+class ProductFieldValues(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    idField = db.Column(db.Integer)
+    idProduct = db.Column(db.Integer)
+    value = db.Column(db.Text, unique=False)
+    fechaasignado = db.Column(db.Date)
+    asignadopor = db.Column(db.String(256), unique=False)
 
 class ProductFieldPrice(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -31,6 +40,14 @@ class ProductFieldPrice(db.Model):
     visible = db.Column(BIT(1))
     idmoneda = db.Column(db.Integer)
     importe = db.Column(db.Double)
+    value = db.Column(db.Text, unique=False)
+
+class ProductFieldExtraValue(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    idProduct = db.Column(db.Integer)
+    idField = db.Column(db.Integer)
+    idFieldValue = db.Column(db.Integer)
+    name = db.Column(db.String(32), unique=False)
     value = db.Column(db.Text, unique=False)
 
 class ProductFieldValue(db.Model):

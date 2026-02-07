@@ -14,15 +14,13 @@ from ..models.User import User
 from ..models.Agenda import Agenda, TipoAgenda
 from ..models.Equipo import EquipoTipo, Proveedor
 from ..models.Sucursal import Sucursal
-from ..models.Oportunidad import TipoOportunidad, Oportunidad, EstadoOportunidad, TipoAccion, AccionOportunidad, ArchivoOportunidad, TipoArchivo
-from ..models.Reclamo import Reclamo, TipoReclamo, Prioridades
+from ..models.Oportunidad import TipoOportunidad, Oportunidad, EstadoOportunidad, TipoAccion, AccionOportunidad, ArchivoOportunidad, TipoArchivo, EstadoOportunidad
+from ..models.Reclamo import Reclamo, TipoReclamo, Prioridades, ReclamoAccion, TipoAccionReclamo, TipoSolucionReclamo, ReclamoArchivo
 from . import application
 from app import db
 from flask import render_template, abort, Response, request, session
-from sqlalchemy import func
+from sqlalchemy import func, desc, or_, and_
 import mimetypes
-from datetime import datetime
-from sqlalchemy import or_
 
 @application.route('/')
 @application.route('/dashboard')
@@ -51,12 +49,83 @@ def clientes():
     except Exception as e:
         return str(e)
 
+@application.route('/reclamo/<id>')
+def reclamo(id):
+    try:
+        reclamo = Reclamo.query.filter_by(id=id).first()
+        cliente = Cliente.query.filter_by(idCliente=reclamo.idCliente).first()
+        tipoReclamo = TipoReclamo.query.filter_by(id=reclamo.idTipoReclamo).first()
+        producto =  ProductClient.query.filter_by(id=reclamo.idProductoCliente).first()
+        tipoProducto = Product.query.filter_by(id=producto.idproduct).first()
+        prioridad = Prioridades.query.filter_by(id=reclamo.idPrioridad).first()
+        tiposarchivos = TipoArchivo.query.filter_by(visible=1).order_by(TipoArchivo.nombre.asc()).all()
+        prioridades = Prioridades.query.all()
+        archivos = (
+            db.session.query(ReclamoArchivo, TipoArchivo)
+            .join(TipoArchivo, ReclamoArchivo.idtipoarchivo == TipoArchivo.id)
+            .filter(ReclamoArchivo.idreclamo == id)
+            .all()
+        )
+
+        tipoSolucion = None
+        if reclamo.idTipoSolucion:
+            tipoSolucion = TipoSolucionReclamo.query.filter_by(id=reclamo.idTipoSolucion).first()
+        tiposSolucion = TipoSolucionReclamo.query.filter_by(visible=1,idTipoReclamo=reclamo.idTipoReclamo).all()
+        tiposAccion = TipoAccionReclamo.query.filter_by(visible=1,idTipoReclamo=reclamo.idTipoReclamo).all()
+        acciones = (
+            db.session.query(ReclamoAccion, TipoAccionReclamo)
+            .join(TipoAccionReclamo, TipoAccionReclamo.id == ReclamoAccion.idTipoAccion)
+            .filter(ReclamoAccion.idReclamo==id)
+            .order_by(desc(ReclamoAccion.fechaAccion))
+            .all()
+        )
+
+        return render_template('/application/reclamo.html', reclamo=reclamo, cliente=cliente,tipoReclamo=tipoReclamo,producto=producto,tipoProducto=tipoProducto,prioridad=prioridad,acciones=acciones,tiposSolucion=tiposSolucion,tiposAccion=tiposAccion,tipoSolucion=tipoSolucion,tiposarchivos=tiposarchivos,archivos=archivos,prioridades=prioridades)
+    except Exception as e:
+        return str(e)
+
 @application.route('/reclamos')
 def reclamos():
     try:
         tiposReclamos = TipoReclamo.query.filter_by(visible=1).all()
         prioridades = Prioridades.query.all()
-        return render_template('/application/reclamos.html',tiposReclamos=tiposReclamos,prioridades=prioridades)
+        usuario_actual = session['user_name']
+        id_grupo_actual = session['sector_id']
+
+        subquery_ultimo_destino = (
+            db.session.query(TipoAccionReclamo.idGRPdestino)
+            .join(ReclamoAccion, ReclamoAccion.idTipoAccion == TipoAccionReclamo.id)
+            .filter(ReclamoAccion.idReclamo == Reclamo.id)
+            .order_by(desc(ReclamoAccion.fechaAccion), desc(ReclamoAccion.id))
+            .limit(1)
+            .correlate(Reclamo)
+            .scalar_subquery()
+        )
+
+        # 2. Consulta Principal
+        reclamos = (
+            db.session.query(Reclamo, Cliente, ProductClient, Product, TipoReclamo)
+            .join(Cliente, Cliente.idCliente == Reclamo.idCliente)
+            .join(ProductClient, ProductClient.id == Reclamo.idProductoCliente)
+            .join(Product, ProductClient.idproduct == Product.id)
+            .join(TipoReclamo, TipoReclamo.id == Reclamo.idTipoReclamo)
+            .filter(
+                Reclamo.fechaSolucion == None,  # Solo reclamos abiertos
+
+                or_(
+                    # CASO A: La última acción fue enviada explícitamente a mi grupo
+                    subquery_ultimo_destino == id_grupo_actual,
+
+                    # CASO B: La última acción tiene destino NULO (None) Y yo creé el reclamo
+                    and_(
+                        subquery_ultimo_destino.is_(None),
+                        Reclamo.altaPor == usuario_actual
+                    )
+                )
+            )
+            .all()
+        )
+        return render_template('/application/reclamos.html',tiposReclamos=tiposReclamos,prioridades=prioridades,reclamos=reclamos)
     except Exception as e:
         return str(e)
 
@@ -114,15 +183,87 @@ def nuevaoportunidad():
 @application.route('/oportunidades')
 def oportunidades():
     try:
-        oportunidades = (
-            db.session.query(Oportunidad, TipoOportunidad, Cliente)
-            .join(TipoOportunidad, Oportunidad.idtipo == TipoOportunidad.id)
-            .join(Cliente, Cliente.idCliente == Oportunidad.idcliente)
-            .filter(Oportunidad.fechafin.is_(None))
-            .all()
+        usuario_actual = session['user_name']
+        id_sector_actual = session['sector_id']
+
+        q = request.args.get('q')
+        etapa = request.args.get('etapa')
+        tipo = request.args.get('tipo', type=int)
+
+        sq_primer_pendiente = (
+            db.session.query(EstadoOportunidad.id)
+            .filter(EstadoOportunidad.idoportunidad == Oportunidad.id)
+            .filter(EstadoOportunidad.fecharealizado.is_(None))  # Solo pendientes
+            .order_by(EstadoOportunidad.id.asc())  # El primero en la fila (FIFO)
+            .limit(1)
+            .correlate(Oportunidad)
+            .scalar_subquery()
         )
 
-        return render_template('/application/oportunidades.html',oportunidades=oportunidades)
+        sq_ultimo_historico = (
+            db.session.query(EstadoOportunidad.id)
+            .filter(EstadoOportunidad.idoportunidad == Oportunidad.id)
+            .order_by(EstadoOportunidad.id.desc())  # El último creado
+            .limit(1)
+            .correlate(Oportunidad)
+            .scalar_subquery()
+        )
+
+        tipo_oportunidades = TipoOportunidad.query.filter_by(visible=1).all()
+
+        oportunidades = (
+            db.session.query(Oportunidad, TipoOportunidad, Cliente, EstadoOportunidad)
+            .join(TipoOportunidad, Oportunidad.idtipo == TipoOportunidad.id)
+            .join(Cliente, Cliente.idCliente == Oportunidad.idcliente)
+
+            # TRUCO MAESTRO: COALESCE
+            # Significa: "Usa el ID del primer pendiente. ¿Es nulo? Entonces usa el último histórico."
+            .join(EstadoOportunidad, EstadoOportunidad.id == func.coalesce(sq_primer_pendiente, sq_ultimo_historico))
+
+            .filter(
+                Oportunidad.fechafin.is_(None),
+
+                # Tu lógica de permisos se mantiene igual
+                or_(
+                    Oportunidad.altapor == usuario_actual,
+
+                    # Nota: Aquí usamos la lógica del estado que seleccionó el COALESCE.
+                    # Si seleccionó un pendiente, verificamos si es mi sector.
+                    # Si seleccionó el último realizado, verificamos si fue mi sector (aunque ya esté hecho).
+                    EstadoOportunidad.sectorresponsable == id_sector_actual
+                )
+            )
+        )
+
+        if q:
+            search_term = f"%{q}%"
+            oportunidades = oportunidades.filter(
+                or_(
+                    Cliente.idCliente.ilike(search_term),
+                    Cliente.cliNombre.ilike(search_term),
+                    Cliente.cliApellido.ilike(search_term),
+                    Cliente.cliRazon.ilike(search_term),
+                    TipoOportunidad.nombre.ilike(search_term)
+                )
+            )
+
+        if etapa == "PROCESS":
+            oportunidades = oportunidades.filter(
+                and_(Oportunidad.fechafin.is_(None
+                                              ), Oportunidad.fechafin.is_(
+                     None)))
+        if etapa == "COMPLETED":
+            oportunidades = oportunidades.filter(
+                and_(Oportunidad.fechafin.is_(None
+                                              ), Oportunidad.fechafin.isnot(
+                    None)))
+        if etapa == "CANCELED":
+            oportunidades = oportunidades.filter(Oportunidad.fechacancelado.isnot(None))
+
+        if tipo:
+            oportunidades = oportunidades.filter(Oportunidad.idtipo == tipo)
+
+        return render_template('/application/oportunidades.html',oportunidades=oportunidades,tipo_oportunidades=tipo_oportunidades,q=q,etapa=etapa,tipo=tipo)
     except Exception as e:
         return str(e)
 
@@ -203,7 +344,7 @@ def oportunidad(id):
 @application.route('/dinamic-form/<id>')
 def dinamicform(id):
     try:
-        campos_dinamicos = ProductField.query.filter_by(idProduct=id, visible=True).order_by(ProductField.order).all()
+        campos_dinamicos = ProductField.query.filter_by(idProduct=id, visible=True, automatic=None).order_by(ProductField.order).all()
         for campo in campos_dinamicos:
             if campo.type == 'COMBO':
                 # Llamar al método de clase para obtener la lista de strings
@@ -250,6 +391,31 @@ def ver_archivo(idoportunidad, idarchivo):
         ArchivoOportunidad
         .query
         .filter_by(id=idarchivo, idoportunidad=idoportunidad)
+        .first()
+    )
+
+    if not archivo:
+        abort(404)
+
+    # Detectar el MIME según la extensión
+    mimetype, _ = mimetypes.guess_type(archivo.filename)
+    if mimetype is None:
+        mimetype = "application/octet-stream"
+
+    return Response(
+        archivo.archivo,          # binario desde la BD
+        mimetype=mimetype,        # tipo real
+        headers={
+            "Content-Disposition": f"inline; filename={archivo.filename}"
+        }
+    )
+
+@application.route("/archivo-reclamo/<int:idreclamo>/<int:idarchivo>")
+def ver_archivo_reclamo(idreclamo, idarchivo):
+    archivo = (
+        ReclamoArchivo
+        .query
+        .filter_by(id=idarchivo, idreclamo=idreclamo)
         .first()
     )
 

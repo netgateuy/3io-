@@ -25,6 +25,7 @@ class User(UserMixin,db.Model):
     password_hash = db.Column(db.String(128))
     visible = db.Column(db.Boolean)
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
+    sector_id = db.Column(db.Integer, db.ForeignKey('sector.id'))
 
     @property
     def password(self):

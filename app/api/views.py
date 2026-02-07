@@ -2,7 +2,7 @@ from flask import request, jsonify, session
 from time import gmtime, strftime
 import base64, re
 from ..models.Contract import Contract
-from ..models.Product import ProductContract, ContractProductFieldValue, ProductFieldPrice, ProductFieldValue, ProductField, Product, ProductClient, ClientProductFieldValue
+from ..models.Product import ProductContract, ContractProductFieldValue, ProductFieldPrice, ProductFieldValue, ProductField, Product, ProductClient, ClientProductFieldValue, ProductFieldValues, ProductFieldExtraValue
 from ..models.Equipo import Equipo, Marca, Modelo, Proveedor, EquipoTipo, EquipoFamilia, EquipoContract
 from ..models.Oportunidad import Oportunidad, EtapaOportunidad, TipoOportunidad, AccionOportunidad, EstadoOportunidad, ArchivoOportunidad
 from ..models.Cliente import Cliente, TipoID
@@ -15,7 +15,7 @@ from ..models.FormaPago import FormaPago
 from ..models.TipoPago import TipoPago
 from ..models.Ciudad import Ciudad
 from ..models.Agenda import Agenda
-from ..models.Reclamo import Reclamo, ReclamoAccion
+from ..models.Reclamo import Reclamo, ReclamoAccion, ReclamoArchivo, TipoAccionReclamo
 from ..models.User import User, TokenBlocklist
 from . import api
 from app import db, jwt
@@ -59,17 +59,30 @@ def login():
 
     # 2. Validar que exista y que la clave sea correcta
     if user and user.verify_password(password):
-        session['user_id'] = user.id
-        # Puedes guardar el ID del usuario como identidad en el token
-        # Es más útil que el nombre para futuras consultas
-        access_token = create_access_token(identity=str(user.id))
+        session["user_id"] = user.username
+        session["user_name"] = user.username
+        session["first_name"] = user.first_name
+        session["role_id"] = user.role_id
+        session["sector_id"] = user.sector_id
+
+        datos_usuario = {
+            "user_id": user.username,
+            "user_name": user.username,
+            "first_name": user.first_name,
+            "role_id": user.role_id,
+            "sector_id": user.sector_id
+        }
+
+        access_token = create_access_token(identity=str(user.id), additional_claims=datos_usuario)
 
         return jsonify({
             "access_token": access_token,
             "user": {
-                "username": user.username,
+                "user_name": user.username,
                 "first_name": user.first_name,
-                "role_id": user.role_id
+                "user_id": user.id,
+                "role_id": user.role_id,
+                "sector_id": user.sector_id,
             }
         }), 200
 
@@ -338,59 +351,73 @@ def getproductos():
 @api.route('/contrato',methods=['POST'])
 @jwt_required()
 def addcontract():
-    try:
-        content = request.json
-        contract = Contract()
-        contract.fechavto = content['fechavto']
-        contract.fechatope = content['fechatope']
-        contract.idvendedor = content['idvendedor']
-        contract.idoportunidad = content['idoportunidad']
-        contract.fechaalta = datetime.now()
-        contract.altapor = content['altapor']
-        contract.mes = datetime.now().month
-        contract.anio = datetime.now().year
-        contract.sendmail  = 0
-        db.session.add(contract)
+    claims = get_jwt()
+
+    content = request.json
+    contract = Contract()
+    contract.fechavto = content['fechavto']
+    contract.fechatope = content['fechatope']
+    contract.idvendedor = content['idvendedor']
+    contract.idoportunidad = content['idoportunidad']
+    contract.fechaalta = datetime.now()
+    contract.altapor = content['altapor']
+    contract.mes = datetime.now().month
+    contract.anio = datetime.now().year
+    contract.sendmail  = 0
+    db.session.add(contract)
+    db.session.commit()
+
+    productos = content['productos']
+    for p in productos:
+        productContract = ProductContract()
+        productContract.idcontract = contract.id
+        productContract.idproduct = p["idproducto"]
+        productContract.idmoneda = p["idmoneda"]
+        productContract.idperiodo = p["idperiodo"]
+        productContract.importe = p["importe"]
+        db.session.add(productContract)
         db.session.commit()
 
-        productos = content['productos']
-        for p in productos:
-            productContract = ProductContract()
-            productContract.idcontract = contract.id
-            productContract.idproduct = p["idproducto"]
-            productContract.idmoneda = p["idmoneda"]
-            productContract.idperiodo = p["idperiodo"]
-            productContract.importe = p["importe"]
-            db.session.add(productContract)
-            db.session.commit()
+        #Debemos chequear si tiene campos automaticos
+        automaticfields = ProductField.query.filter_by(idProduct=p["idproducto"],automatic=True).all()
 
-            #Tenemos que cargar los campos especificos de producto
-            for key, value in p.items():
-                if key.startswith("campo_"):
-                    match = re.match(r"campo_(\d+)", key)
-                    if match:
-                        id_field = int(match.group(1))
-                        field = ContractProductFieldValue()
-                        field.idProduct = p["idproducto"]
-                        field.idProductField = id_field
-                        field.idContract = contract.id
-                        field.value = value
-                        db.session.add(field)
-                        db.session.commit()
+        for autfield in automaticfields:
+            fieldValue = ProductFieldValues.query.filter_by(idProduct=p["idproducto"],idField=autfield.id,fechaasignado=None).order_by(ProductFieldValues.id).first()
+            fieldValue.fechaasignado = datetime.now()
+            fieldValue.asignadopor = claims['user_name']
 
-        return jsonify(
-            contract=contract.id,
-            observation="Contrato dado de alta.",
-            error=False,
-            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
-        )
+            field = ContractProductFieldValue()
+            field.idProduct = p["idproducto"]
+            field.idProductField = autfield.id
+            field.idContract = contract.id
+            field.value = fieldValue.value
+            db.session.add(field)
+            db.session.commit() #Guardamos el nro contrato
 
-    except Exception as e:
-        return jsonify(
-            observation=str(e),
-            error=True,
-            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
-        )
+            #Podemos agregar un aviso de que quedan pocos datos automaticos
+
+
+
+        #Tenemos que cargar los campos especificos de producto
+        for key, value in p.items():
+            if key.startswith("campo_"):
+                match = re.match(r"campo_(\d+)", key)
+                if match:
+                    id_field = int(match.group(1))
+                    field = ContractProductFieldValue()
+                    field.idProduct = p["idproducto"]
+                    field.idProductField = id_field
+                    field.idContract = contract.id
+                    field.value = value
+                    db.session.add(field)
+                    db.session.commit()
+
+    return jsonify(
+        contract=contract.id,
+        observation="Contrato dado de alta.",
+        error=False,
+        serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+    )
 
 @api.route('/equipo',methods=['POST'])
 @jwt_required()
@@ -678,10 +705,30 @@ def update_client(id):
             serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
         )
 
+
+@api.route('/oportunidad/<idoportunidad>',methods=['GET'])
+@jwt_required()
+def getoportunidad(idoportunidad):
+    try:
+        oportunidad = Oportunidad.query.filter_by(id=idoportunidad).first()
+        contratos = Contract.query.filter_by(idoportunidad=idoportunidad).all()
+        cliente = Cliente.query.filter_by(idCliente=oportunidad.idcliente).first()
+        oportunidad = getOportunidad(oportunidad, contratos, cliente)
+        return jsonify(oportunidad)
+
+    except Exception as e:
+        return jsonify(
+            observation=str(e),
+            error="yes",
+            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        )
+
+
 @api.route('/oportunidad',methods=['POST'])
 @jwt_required()
 def addoportunidad():
     try:
+        claims = get_jwt()
         content = request.json
         #Cliente
         if content["idCliente"] == 0:
@@ -735,7 +782,7 @@ def addoportunidad():
             db.session.commit()
 
         # Debemos dar de alta las etapas de la oportunidad
-        etapas_oportunidad = EtapaOportunidad.query.filter_by(idtipoportunidad=content["idtipo"]).all()
+        etapas_oportunidad = EtapaOportunidad.query.filter_by(idtipooportunidad=content["idtipo"]).all()
         etapa_0 = etapas_oportunidad[0]
         #Oportunidad
         oportunidad  = Oportunidad()
@@ -744,15 +791,15 @@ def addoportunidad():
         oportunidad.fechainicio = content["fechaInicio"]
         oportunidad.idcliente = cliente.idCliente
         oportunidad.responsable = content["responsable"]
+        oportunidad.altapor = claims['user_name']
         oportunidad.estado = etapa_0.nombre
         db.session.add(oportunidad)
         db.session.commit()
 
-
         for etapa in etapas_oportunidad:
             estado = EstadoOportunidad()
             estado.idoportunidad = oportunidad.id
-            estado.idtipoportunidad = content["idtipo"]
+            estado.idtipooportunidad = content["idtipo"]
             estado.icono = etapa.icono
             estado.predecesor = etapa.predecesor
             estado.notificar = etapa.notificar
@@ -767,6 +814,22 @@ def addoportunidad():
             estado.redirige = etapa.redirige
             estado.uriredireccion = etapa.uriredireccion
 
+            if estado.predecesor is None and estado.notificar:
+                oportunidad_json = getOportunidad(oportunidad,[],cliente)
+
+                response = requests.post(
+                    etapa.uri,
+                    json=oportunidad_json,
+                )
+
+                if not response.status_code == 200:
+                    return jsonify(
+                        observation="Error al intentar avanzar la etapa.",
+                        uri=etapa.uri,
+                        error=False,
+                        json=oportunidad,
+                        serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+                    ), 500
             db.session.add(estado)
             db.session.commit()
         return jsonify(
@@ -993,6 +1056,18 @@ def get_subpaises(idPais):
         })
     return jsonify(data)
 
+@api.route('/tipoaccionreclamo/<idTipoReclamo>', methods=['GET'])
+@jwt_required()
+def get_tiposaccionreclamo(idTipoReclamo):
+    tiposacciones = TipoAccionReclamo.query.filter_by(idTipoReclamo=idTipoReclamo).order_by(TipoAccionReclamo.descripcion).all()
+    data = []
+    for s in tiposacciones:
+        data.append({
+            "idTipoAccion": s.id,
+            "descripcion": s.descripcion
+        })
+    return jsonify(data)
+
 @api.route('/product-field-values/<idProduct>/<idField>', methods=['GET'])
 @jwt_required()
 def get_productfieldsvalues(idProduct,idField):
@@ -1111,9 +1186,13 @@ def getOportunidad(oportunidad, contratos, cliente):
     cliente_json["nroid"] = cliente.nroID
     cliente_json["emailaviso"] = cliente.eMailAviso
     cliente_json["telefono"] = cliente.Telefono
+    cliente_json["celular"] = cliente.Celular
     cliente_json["calle"] = cliente.Calle
     cliente_json["nropuerta"] = cliente.nroPuerta
     cliente_json["apto"] = cliente.Apto
+    cliente_json["manzana"] = cliente.Manzana
+    cliente_json["solar"] = cliente.Solar
+    cliente_json["padron"] = cliente.Padron
     cliente_json["departamento"] = subpais.nombre
     cliente_json["ciudad"] = ciudad.nombre
     cliente_json["pais"] = pais.nombre
@@ -1128,7 +1207,6 @@ def getOportunidad(oportunidad, contratos, cliente):
     tipodoc_json["tipocli"] = tipodoc.tipocli
     tipodoc_json["visible"] = tipodoc.visible
     cliente_json["tipodocumento"] = tipodoc_json
-
 
     # Convertimos contratos a una lista de dicts
     contratos_json = []
@@ -1149,15 +1227,22 @@ def getOportunidad(oportunidad, contratos, cliente):
                 .all()
             )
             for fc, f in fields:
+                extrefields = []
                 if f.type == "COMBO":
                     #Hay que buscar el field real
                     pc = ProductFieldValue.query.filter_by(id = fc.value,idProduct = fc.idProduct, idField = fc.idProductField).first()
                     if pc:
                         fc.value = pc.value
-                fields_json.append({"id": f.id, "nombre": f.name, "value": fc.value})
+                        extrafieldsvalues = ProductFieldExtraValue.query.filter_by(idProduct = fc.idProduct, idField = fc.idProductField,idFieldValue=pc.id).all()
+
+                        for extraf in extrafieldsvalues:
+                            extrefields.append({"id": extraf.id, "name":extraf.name, "value": extraf.value})
+
+                fields_json.append({"id": fc.id,"idfield": fc.idProductField, "name": f.name, "value": fc.value,"extrafields": extrefields})
+
             moneda = Moneda.query.filter_by(idMoneda=p.idmoneda).first()
             plazo = Plazo.query.filter_by(idPlazo=p.idperiodo).first()
-            productos_json.append({"id": p.id,"identificador": p.identificador, "producto": {"id": tp.id, "nombre": tp.name , "tipo": tp.type, "externalid": tp.externalid}, "moneda": {"id":moneda.idMoneda,"descripcion":moneda.descripcion,"idexterno":moneda.idExterno,"abreviacion":moneda.abreviacion}, "plazo": {"id":plazo.idPlazo,"descripcion":plazo.descripcion}, "importe":p.importe, "fields": fields_json})
+            productos_json.append({"id": p.idcontract, "idperiodo": p.idperiodo, "identificador": p.identificador, "producto": {"id": tp.id, "nombre": tp.name , "tipo": tp.type, "externalid": tp.externalid}, "moneda": {"id":moneda.idMoneda,"descripcion":moneda.descripcion,"idexterno":moneda.idExterno,"abreviacion":moneda.abreviacion}, "plazo": {"id":plazo.idPlazo,"descripcion":plazo.descripcion}, "importe":p.importe, "fields": fields_json})
 
         v = Vendedor.query.filter_by(idVendedor = c.idvendedor).first()
         contratos_json.append({
@@ -1176,7 +1261,7 @@ def getOportunidad(oportunidad, contratos, cliente):
             "bajapor": c.bajapor,
             "sendmail": c.sendmail,
             "comercial": c.comercial,
-            "vendedor": {"id": v.idVendedor, "nombre": v.nombre, "email":v.email,"celular": v.celular},
+            "vendedor": {"id": v.idVendedor, "nombre": v.nombre, "email":v.email,"celular": v.celular, "interno": v.interno},
             "contrato": c.contrato,
             "md5": c.md5,
             "productos": productos_json,
@@ -1253,9 +1338,25 @@ def avanzar_etapa(idoportunidad):
     #Obtengo la primer etapa sin realizar
     oportunidad = Oportunidad.query.filter_by(id=idoportunidad).first()
     contratos = Contract.query.filter_by(idoportunidad=idoportunidad).all()
+    archivos = ArchivoOportunidad.query.filter_by(idoportunidad=idoportunidad).all()
     cliente = Cliente.query.filter_by(idCliente=oportunidad.idcliente).first()
     etapa = EstadoOportunidad.query.filter_by(idoportunidad=idoportunidad,fecharealizado=None).order_by(EstadoOportunidad.id).first()
     oportunidad = getOportunidad(oportunidad, contratos, cliente)
+
+    #Controlamos si requiere contratos y archivos para poder avanzar
+    if etapa.contratos and len(contratos) == 0:
+        return jsonify(
+            observation="Error al intentar avanzar la etapa, no hay contratos ingresados.",
+            error=False,
+            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        ), 500
+
+    if etapa.archivos and len(archivos) == 0:
+        return jsonify(
+            observation="Error al intentar avanzar la etapa, no hay archivos ingresados.",
+            error=False,
+            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        ), 500
 
     if etapa.automatica is None:
         if etapa.notificar:
@@ -1525,6 +1626,39 @@ def asignar_equipos_contract():
         db.session.rollback()  # Si algo falla, cancelamos todo
         return jsonify({"error": str(e)}), 500
 
+@api.route("/reclamo/subir-archivo", methods=["POST"])
+@jwt_required()
+def subir_archivo_reclamo():
+    archivo = request.files.get("archivo")
+    if not archivo:
+        return jsonify(
+            observation="Debe adjuntar un archivo.",
+            error=True,
+            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        )
+
+    archivo_nuevo = ReclamoArchivo(
+        idreclamo=request.form.get("idReclamo"),
+        filename=archivo.filename,
+        fechaalta=datetime.now(),
+        archivo=archivo.read(),
+        observaciones=request.form.get("observaciones"),
+        altapor=request.form.get("altapor"),
+        idtipoarchivo=request.form.get("idtipoarchivo")
+    )
+
+    db.session.add(archivo_nuevo)
+    db.session.commit()
+
+    return jsonify(
+        id=archivo_nuevo.id,
+        idoportunidad="Archivo dado de alta correctamente.",
+        observation="Archivo dado de alta correctamente.",
+        error=False,
+        serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+    )
+
+
 @api.route('/reclamo', methods=['POST'])
 @jwt_required()
 def crear_reclamo():
@@ -1538,7 +1672,7 @@ def crear_reclamo():
             idProductoCliente=data.get('idProductoCliente'),
             obsAlta=data.get('obsAlta'),
             # Convertimos string a objeto date de Python
-            fechaAlta=datetime.strptime(data.get('fechaAlta'), '%Y-%m-%d').date() if data.get('fechaAlta') else None,
+            fechaAlta=datetime.now(),
             altaPor=data.get('altaPor'),
             idPrioridad=data.get('idPrioridad'),
             reclamadoPor=data.get('reclamadoPor'),
@@ -1551,6 +1685,19 @@ def crear_reclamo():
         db.session.add(nuevo_reclamo)
         db.session.commit()
 
+        nueva_accion = ReclamoAccion(
+            idReclamo=nuevo_reclamo.id,
+            fechaAccion=datetime.now(),
+            idTipoReclamo=data.get('idTipoReclamo'),
+            accionPor=data.get('altaPor'),
+            idTipoAccion=data.get('idTipoAccion'),
+            obsAccion=data.get('obsAlta'),
+            idHoras=None,
+            idMinutos=None
+        )
+
+        db.session.add(nueva_accion)
+        db.session.commit()
         return jsonify({"message": "Reclamo creado con éxito", "id": nuevo_reclamo.id}), 201
 
     except Exception as e:
@@ -1561,18 +1708,18 @@ def crear_reclamo():
 @jwt_required()
 def registrar_accion():
     data = request.get_json()
-    id_reclamo = data.get('idReclamo')
+    idReclamo = data.get('idReclamo')
 
     # Verificamos que el reclamo exista
-    reclamo = Reclamo.query.get(id_reclamo)
+    reclamo = Reclamo.query.get(idReclamo)
     if not reclamo:
         return jsonify({"message": "Reclamo no encontrado"}), 404
 
     try:
         # 1. Creamos el registro en ReclamoAccion
         nueva_accion = ReclamoAccion(
-            idReclamo=id_reclamo,
-            fechaAccion=datetime.now().date(),
+            idReclamo=idReclamo,
+            fechaAccion=datetime.now(),
             accionPor=data.get('accionPor'),
             idTipoReclamo=reclamo.idTipoReclamo,  # Hereda del reclamo original o del JSON
             idTipoAccion=data.get('idTipoAccion'),
@@ -1581,20 +1728,6 @@ def registrar_accion():
             idMinutos=data.get('idMinutos')
         )
         db.session.add(nueva_accion)
-
-        # 2. Modificación del Reclamo (Lógica de negocio)
-        # Si la acción implica cerrar el reclamo o actualizar observaciones:
-        if data.get('finalizaReclamo'):
-            reclamo.fechaSolucion = datetime.now().date()
-            reclamo.solucionPor = data.get('accionPor')
-            reclamo.idTipoSolucion = data.get('idTipoAccion')
-            reclamo.obsSolucion = data.get('obsAccion')
-
-        # Actualizamos campos de aviso si vienen en la petición
-        if data.get('proximoAviso'):
-            reclamo.proximoAviso = datetime.strptime(data.get('proximoAviso'), '%Y-%m-%d').date()
-            reclamo.pospuestoPor = data.get('accionPor')
-
         db.session.commit()
         return jsonify({"message": "Acción registrada y reclamo actualizado"}), 200
 
@@ -1603,6 +1736,24 @@ def registrar_accion():
         return jsonify({"error": str(e)}), 400
 
 
+@api.route('/reclamo/cerrar', methods=['PUT'])
+@jwt_required()
+def cerrar_reclamo():
+    data = request.get_json()
+    id = data.get('idReclamo')
+    reclamo = Reclamo.query.filter(Reclamo.id == id,Reclamo.fechaSolucion == None).first_or_404()
+    try:
+        reclamo.idTipoSolucion = data.get('idTipoSolucion')
+        reclamo.solucionPor = data.get('solucionPor')
+        reclamo.obsSolucion = data.get('obsSolucion')
+        reclamo.fechaSolucion = datetime.now()
+        db.session.commit()
+        return jsonify({"message": "Reclamo cerrado correctamente"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
 @api.route('/reclamo/<int:id>', methods=['PUT'])
 @jwt_required()
 def modificar_reclamo(id):
@@ -1610,15 +1761,11 @@ def modificar_reclamo(id):
     data = request.get_json()
 
     try:
-        # Actualización selectiva (solo lo que viene en el JSON)
-        for key, value in data.items():
-            if hasattr(reclamo, key):
-                # Validación simple para fechas
-                if key in ['fechaAlta', 'fechaSolucion', 'proximoAviso'] and value:
-                    setattr(reclamo, key, datetime.strptime(value, '%Y-%m-%d').date())
-                else:
-                    setattr(reclamo, key, value)
-
+        reclamo.emailAviso = data.get('emailAviso')
+        reclamo.celularAviso = data.get('celularAviso')
+        reclamo.telefonoAviso = data.get('telefonoAviso')
+        reclamo.idPrioridad = data.get('idPrioridad')
+        reclamo.obsAlta = data.get('obsAlta')
         db.session.commit()
         return jsonify({"message": "Reclamo actualizado correctamente"}), 200
     except Exception as e:

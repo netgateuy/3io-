@@ -178,30 +178,7 @@
     </style>
 </head>
 <body>
-
-    {# --- MENÚ LATERAL RESTAURADO --- #}
-    <aside id="sidebar" class="sidebar">
-        <div class="sidebar-header">
-            <div class="logo-container">
-                <img src="/static/img/3ioplus.png" alt="CRM Logo" title="Tu Logo PNG">
-            </div>
-            <button id="toggleBtn" class="toggle-btn" title="Plegar/Desplegar Menú">&#9776;</button>
-        </div>
-        <nav class="menu">
-            <ul>
-                <li><a href="#"><i class="bi bi-speedometer2"></i> <span>Dashboard</span></a></li>
-                <li><a href="#"><i class="bi bi-people"></i> <span>Clientes</span></a></li>
-                <li><a href="#"><i class="bi bi-file-earmark-text"></i> <span>Contratos</span></a></li>
-                <li class="active"><a href="/application/oportunidades" class="active"><i class="bi bi-bag-check"></i> <span>Oportunidades</span></a></li>
-                <li><a href="#"><i class="bi bi-calendar-check"></i> <span>Tareas y Agenda</span></a></li>
-                <li><a href="#"><i class="bi bi-graph-up-arrow"></i> <span>Reportes</span></a></li>
-                <hr style="margin: 15px 20px; border-color: rgba(255, 255, 255, 0.2);">
-                <li><a href="#"><i class="bi bi-gear"></i> <span>Configuración</span></a></li>
-                <li><a href="#"><i class="bi bi-box-arrow-right"></i> <span>Cerrar Sesión</span></a></li>
-            </ul>
-        </nav>
-    </aside>
-    {# --- FIN MENÚ LATERAL --- #}
+    {% include '/application/menu.html' %}
 
     <main id="content" class="content">
         <header class="navbar">
@@ -221,25 +198,23 @@
 
         <div class="filter-bar">
             <div class="form-field">
-                <input type="text" id="filtro_texto" placeholder="Buscar por Nombre, Cliente o ID">
+                <input type="text" id="filtro_texto" placeholder="Buscar por Cliente, Documento o ID" value="{{ q if q else '' }}">
             </div>
 
             <div class="form-field" style="max-width: 200px;">
-                <select id="filtro_etapa">
-                    <option value="">Filtrar por Etapa</option>
-                    {# Ejemplo de loop Jinja #}
-                    {% for etapa in etapas_filtradas %}
-                        <option value="{{ etapa.id }}">{{ etapa.nombre }}</option>
-                    {% endfor %}
+                <select id="etapa" name="etapa">
+                    <option value="">Filtrar por etapa</option>
+                    <option value="PROCESS" {{ 'selected' if etapa == 'PROCESS' else '' }}>En proceso</option>
+                    <option value="COMPLETED" {{ 'selected' if etapa == 'COMPLETED' else '' }}>Completadas</option>
+                    <option value="CANCELED" {{ 'selected' if etapa == 'CANCELED' else '' }}>Canceladas</option>
                 </select>
             </div>
 
             <div class="form-field" style="max-width: 200px;">
-                <select id="filtro_comercial">
-                    <option value="">Filtrar por Comercial</option>
-                    {# Ejemplo de loop Jinja #}
-                    {% for comercial in usuarios %}
-                        <option value="{{ comercial.id }}">{{ comercial.first_name }}</option>
+                <select id="tipo" name="tipo">
+                    <option value="">Filtrar por tipo</option>
+                    {% for t in tipo_oportunidades %}
+                        <option value="{{ t.id }}" {{ 'selected' if t.id == tipo else '' }}>{{ t.nombre }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -259,14 +234,12 @@
                         <th>Fecha Inicio</th>
                         <th>Etapa Actual</th>
                         <th>Fecha Fin</th>
-                        <th>Contratos</th>
-                        <th>Acciones</th>
                         <th></th>
                     </tr>
                 </thead>
                 <tbody>
                     {# Bucle Jinja para listar las oportunidades #}
-                    {% for o, tipo, cliente in oportunidades %}
+                    {% for o, tipo, cliente, estado in oportunidades %}
                     <tr onclick="window.location='/application/oportunidad/{{ o.id }}'" style="cursor: pointer;">
                         <td><span class="highlight-id" title="Ver detalle de la oportunidad" onclick="veroportunidad({{ o.id }})">#{{ o.id }}</span></td>
                         <td>{{ tipo.nombre }}</td>
@@ -274,8 +247,6 @@
                         <td>{{ o.fechainicio }}</td>
                         <td>{{ o.estado }}</td>
                         <td>{{ o.fechafin or '' }}</td>
-                        <td><a href="/application/oportunidad/{{ o.id }}" title="Ver Detalle"><i class="bi bi-eye"></i></a></td>
-                        <td></td>
                         <td>
                             <a href="/application/oportunidad/editar/{{ o.id }}" title="Editar"><i class="bi bi-pencil"></i></a>
                         </td>
@@ -305,11 +276,10 @@
 
         function aplicarFiltros() {
             const query = document.getElementById('filtro_texto').value;
-            const etapa = document.getElementById('filtro_etapa').value;
-            const comercial = document.getElementById('filtro_comercial').value;
+            const etapa = document.getElementById('etapa').value;
+            const tipo = document.getElementById('tipo').value;
 
-            // Construir la URL de FETCH o la redirección para que Flask filtre
-            const url = `/application/oportunidades?q=${query}&etapa=${etapa}&comercial=${comercial}`;
+            const url = `/application/oportunidades?q=${query}&etapa=${etapa}&tipo=${tipo}`;
             console.log("URL de filtro generada:", url);
             window.location.href = url;
         }

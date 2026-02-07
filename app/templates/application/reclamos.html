@@ -1,345 +1,536 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Reclamos | CRM Glass</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" />
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
-    <style>
-        /* --- TUS ESTILOS ORIGINALES (INTACTOS) --- */
-        :root {
-            --sidebar-width: 260px;
-            --sidebar-closed-width: 80px;
-            --glass-bg-light: rgba(255, 255, 255, 0.8);
-            --glass-bg-dark: rgba(20, 37, 60, 0.85);
-            --primary-blue: #007bff;
-            --font-dark: #1e3a5f;
-            --font-light: #ffffff;
-            --shadow-soft: rgba(0, 0, 0, 0.15);
-            --transition-speed: 0.3s;
-            --logo-bg: rgba(255, 255, 255, 0.2);
-            --stage-color-prospecto: #FF9900;
-            --danger-red: #dc3545;
-            --success-green: #28a745;
-            /* Variable extra para inputs del wizard */
-            --glass-input: rgba(255, 255, 255, 0.5);
-        }
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Gestión de Reclamos | CRM Glass</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+        <style>
+            /* --- TUS ESTILOS ORIGINALES (INTACTOS) --- */
+            :root {
+                --sidebar-width: 260px;
+                --sidebar-closed-width: 80px;
+                --glass-bg-light: rgba(255, 255, 255, 0.8);
+                --glass-bg-dark: rgba(20, 37, 60, 0.85);
+                --primary-blue: #007bff;
+                --font-dark: #1e3a5f;
+                --font-light: #ffffff;
+                --shadow-soft: rgba(0, 0, 0, 0.15);
+                --transition-speed: 0.3s;
+                --logo-bg: rgba(255, 255, 255, 0.2);
+                --stage-color-prospecto: #FF9900;
+                --danger-red: #dc3545;
+                --success-green: #28a745;
+                /* Variable extra para inputs del wizard */
+                --glass-input: rgba(255, 255, 255, 0.5);
+            }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            background: linear-gradient(135deg, #74a0e9 0%, #1f4788 100%);
-            display: flex;
-            min-height: 100vh;
-            color: var(--font-dark);
-        }
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body {
+                font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+                background: linear-gradient(135deg, #74a0e9 0%, #1f4788 100%);
+                display: flex;
+                min-height: 100vh;
+                color: var(--font-dark);
+            }
 
-        /* --- SIDEBAR COMPLETO --- */
-        .sidebar { width: var(--sidebar-width); background-color: var(--glass-bg-dark); color: white; height: 100vh; position: fixed; overflow-x: hidden; padding-top: 20px; backdrop-filter: blur(8px); border-right: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 2px 0 15px rgba(0, 0, 0, 0.3); z-index: 100; transition: width var(--transition-speed) ease; display: flex; flex-direction: column; }
+           /* --- ESTILOS COMPARTIDOS (SIDEBAR, CONTENT, NAVBAR) --- */
+        .sidebar { width: var(--sidebar-width); background-color: var(--glass-bg-dark); color: white; height: 100vh; position: fixed; overflow-x: hidden; padding-top: 20px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-right: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 2px 0 15px rgba(0, 0, 0, 0.3); z-index: 100; transition: width var(--transition-speed) ease; display: flex; flex-direction: column; }
         .sidebar.closed { width: var(--sidebar-closed-width); }
-
-        .sidebar-header { display: flex; justify-content: space-between; align-items: center; padding: 0 20px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); margin-bottom: 15px; width: var(--sidebar-width); transition: width var(--transition-speed) ease; }
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; padding: 0 20px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); margin-bottom: 15px; width: var(--sidebar-width); padding-right: 15px; transition: width var(--transition-speed) ease; }
         .sidebar.closed .sidebar-header { width: var(--sidebar-closed-width); justify-content: center; padding: 0 0 20px 0; }
         .sidebar.closed .logo-container { display: none; }
-
         .logo-container { background-color: var(--logo-bg); border-radius: 8px; padding: 5px; display: flex; align-items: center; justify-content: center; }
         .logo-container img { max-height: 40px; width: auto; }
-
         .toggle-btn { background: none; color: white; border: 1px solid rgba(255, 255, 255, 0.4); padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 1.2em; display: flex; align-items: center; justify-content: center; transition: transform var(--transition-speed) ease; }
         .sidebar.closed .toggle-btn { transform: rotate(180deg); }
-
         .menu ul { list-style: none; }
-        .menu li a { display: flex; align-items: center; padding: 12px 15px; text-decoration: none; color: #dbe4f1; border-radius: 8px; margin: 5px 10px; transition: 0.2s; }
-        .menu li a .bi { font-size: 1.3em; margin-right: 15px; width: 25px; text-align: center; }
+        .menu li a { display: flex; align-items: center; padding: 12px 15px; text-decoration: none; color: #dbe4f1; border-radius: 8px; margin: 5px 10px; line-height: 1.2; }
+        .menu li a .bi { font-size: 1.3em; margin-right: 15px; width: 25px; text-align: center; line-height: 0; }
         .sidebar.closed .menu li a span { display: none; }
         .sidebar.closed .menu li a { justify-content: center; padding: 12px 0; margin: 5px 15px; }
-        .menu li a.active { background-color: var(--primary-blue); box-shadow: 0 2px 8px rgba(0, 123, 255, 0.5); }
-        .menu li a:hover:not(.active) { background: rgba(255,255,255,0.1); }
 
-        /* --- CONTENT AREA --- */
-        .content { margin-left: var(--sidebar-width); flex-grow: 1; padding: 25px 30px; width: calc(100% - var(--sidebar-width)); transition: margin-left var(--transition-speed) ease, width var(--transition-speed) ease; }
-        .content.shifted { margin-left: var(--sidebar-closed-width); width: calc(100% - var(--sidebar-closed-width)); }
+            .menu ul { list-style: none; }
+            .menu li a { display: flex; align-items: center; padding: 12px 15px; text-decoration: none; color: #dbe4f1; border-radius: 8px; margin: 5px 10px; transition: 0.2s; }
+            .menu li a .bi { font-size: 1.3em; margin-right: 15px; width: 25px; text-align: center; }
+            .sidebar.closed .menu li a span { display: none; }
+            .sidebar.closed .menu li a { justify-content: center; padding: 12px 0; margin: 5px 15px; }
+            .menu li a.active { background-color: var(--primary-blue); box-shadow: 0 2px 8px rgba(0, 123, 255, 0.5); }
+            .menu li a:hover:not(.active) { background: rgba(255,255,255,0.1); }
 
-        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; border-radius: 12px; background-color: var(--glass-bg-light); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 4px 30px var(--shadow-soft); margin-bottom: 30px; }
-        .navbar input { padding: 10px 15px; width: 300px; border: none; border-radius: 20px; background: white; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); }
+            /* --- CONTENT AREA --- */
+            .content { margin-left: var(--sidebar-width); flex-grow: 1; padding: 25px 30px; width: calc(100% - var(--sidebar-width)); transition: margin-left var(--transition-speed) ease, width var(--transition-speed) ease; }
+            .content.shifted { margin-left: var(--sidebar-closed-width); width: calc(100% - var(--sidebar-closed-width)); }
 
-        /* --- CARDS & TABLES --- */
-        .glass-card { background-color: var(--glass-bg-light); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 4px 30px var(--shadow-soft); border-radius: 15px; padding: 25px; margin-bottom: 25px; }
+            .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; border-radius: 12px; background-color: var(--glass-bg-light); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 4px 30px var(--shadow-soft); margin-bottom: 30px; }
+            .navbar input { padding: 10px 15px; width: 300px; border: none; border-radius: 20px; background: white; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); }
 
-        .btn { padding: 10px 18px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
-        .btn-add { background: var(--primary-blue); color: white; }
-        .btn-modify-light { background: rgba(0, 123, 255, 0.1); color: var(--primary-blue); border: 1px solid rgba(0, 123, 255, 0.2); padding: 6px 12px; font-size: 0.85em; margin-right: 5px; }
+            /* --- CARDS & TABLES --- */
+            .glass-card { background-color: var(--glass-bg-light); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 4px 30px var(--shadow-soft); border-radius: 15px; padding: 25px; margin-bottom: 25px; }
 
-        .services-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        .services-table th { text-align: left; padding: 12px 15px; font-size: 0.8em; color: #666; text-transform: uppercase; border-bottom: 1px solid rgba(0,0,0,0.05); }
-        .services-table td { height: 45px; padding: 8px 15px; border-bottom: 1px solid rgba(0,0,0,0.05); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
-        .services-table tr:hover { background: rgba(255,255,255,0.4); }
+            .btn { padding: 10px 18px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
+            .btn-add { background: var(--primary-blue); color: white; }
+            .btn-modify-light { background: rgba(0, 123, 255, 0.1); color: var(--primary-blue); border: 1px solid rgba(0, 123, 255, 0.2); padding: 6px 12px; font-size: 0.85em; margin-right: 5px; }
 
-        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75em; font-weight: bold; }
-        .status-active { background: rgba(40, 167, 69, 0.2); color: var(--success-green); }
-        .status-open { background: rgba(0, 123, 255, 0.2); color: var(--primary-blue); }
+            .services-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+            .services-table th { text-align: left; padding: 12px 15px; font-size: 0.8em; color: #666; text-transform: uppercase; border-bottom: 1px solid rgba(0,0,0,0.05); }
+            .services-table td { height: 45px; padding: 8px 15px; border-bottom: 1px solid rgba(0,0,0,0.05); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+            .services-table tr:hover { background: rgba(255,255,255,0.4); }
 
-        /* --- NUEVOS ESTILOS PARA EL WIZARD (MODAL) --- */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 1001; }
+            .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75em; font-weight: bold; }
+            .status-active { background: rgba(40, 167, 69, 0.2); color: var(--success-green); }
+            .status-open { background: rgba(0, 123, 255, 0.2); color: var(--primary-blue); }
 
-        .modal-content {
-            background-color: var(--glass-bg-light);
-            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            border-radius: 18px; padding: 30px; width: 95%; max-width: 550px;
-            box-shadow: 0 8px 30px var(--shadow-soft);
-            display: flex; flex-direction: column;
-        }
+            /* --- NUEVOS ESTILOS PARA EL WIZARD (MODAL) --- */
+            .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 1001; }
 
-        /* Indicadores de Pasos */
-        .step-indicators { display: flex; justify-content: space-between; margin-bottom: 25px; position: relative; padding: 0 15px; }
-        .step-indicators::before { content: ''; position: absolute; top: 15px; left: 20px; right: 20px; height: 2px; background: rgba(0,0,0,0.1); z-index: 0; }
+            .modal-content {
+                background-color: var(--glass-bg-light);
+                backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.5);
+                border-radius: 18px; padding: 30px; width: 95%; max-width: 550px;
+                box-shadow: 0 8px 30px var(--shadow-soft);
+                display: flex; flex-direction: column;
+            }
 
-        .step-dot {
-            width: 32px; height: 32px; border-radius: 50%;
-            background: #ddd; color: white;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: bold; position: relative; z-index: 1;
-            transition: all 0.3s ease; border: 2px solid white;
-        }
-        .step-dot.active { background: var(--primary-blue); transform: scale(1.1); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        .step-dot.completed { background: var(--success-green); }
+            /* Indicadores de Pasos */
+            .step-indicators { display: flex; justify-content: space-between; margin-bottom: 25px; position: relative; padding: 0 15px; }
+            .step-indicators::before { content: ''; position: absolute; top: 15px; left: 20px; right: 20px; height: 2px; background: rgba(0,0,0,0.1); z-index: 0; }
 
-        /* Contenedores de cada paso */
-        .wizard-step { display: none; animation: fadeIn 0.3s; }
-        .wizard-step.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+            .step-dot {
+                width: 32px; height: 32px; border-radius: 50%;
+                background: #ddd; color: white;
+                display: flex; align-items: center; justify-content: center;
+                font-weight: bold; position: relative; z-index: 1;
+                transition: all 0.3s ease; border: 2px solid white;
+            }
+            .step-dot.active { background: var(--primary-blue); transform: scale(1.1); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+            .step-dot.completed { background: var(--success-green); }
 
-        /* Estilos de inputs dentro del wizard */
-        .w-input { width: 100%; padding: 12px; border: 1px solid rgba(0,0,0,0.1); border-radius: 10px; background: var(--glass-input); margin-bottom: 15px; outline: none; }
-        .w-input:focus { border-color: var(--primary-blue); background: white; }
+            /* Contenedores de cada paso */
+            .wizard-step { display: none; animation: fadeIn 0.3s; }
+            .wizard-step.active { display: block; }
+            @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Lista de resultados (Paso 2) */
-        .results-list { max-height: 200px; overflow-y: auto; background: rgba(255,255,255,0.4); border-radius: 10px; border: 1px solid rgba(0,0,0,0.05); }
-        .result-item { padding: 12px; border-bottom: 1px solid rgba(0,0,0,0.05); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .result-item:hover { background: rgba(0,123,255,0.1); }
-        .result-item.selected { background: var(--primary-blue); color: white; }
-        .result-item.selected small { color: rgba(255,255,255,0.8); }
+            /* Estilos de inputs dentro del wizard */
+            .w-input { width: 100%; padding: 12px; border: 1px solid rgba(0,0,0,0.1); border-radius: 10px; background: var(--glass-input); margin-bottom: 15px; outline: none; }
+            .w-input:focus { border-color: var(--primary-blue); background: white; }
 
-    </style>
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-</head>
-<body>
-    {% include '/application/menu.html' %}
-    <main id="content" class="content">
-        <header class="navbar">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <i class="bi bi-search" style="color: #888;"></i>
-                <input type="text" placeholder="Buscar reclamo existente..." style="box-shadow: none; background: transparent; padding: 5px;">
-            </div>
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <span style="font-size: 0.9em;"><strong>Juan Miranda</strong></span>
-                <div style="width: 35px; height: 35px; background: var(--primary-blue); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center;">JM</div>
-            </div>
-        </header>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-            <div>
-                <h1 style="color: white; font-size: 2em; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Gestión de Reclamos</h1>
-                <p style="color: rgba(255,255,255,0.8);">Listado</p>
-            </div>
-            <button class="btn btn-add" onclick="abrirWizard()">
-                <i class="bi bi-plus-lg"></i> Nuevo Reclamo
-            </button>
-        </div>
-        <div class="glass-card">
-            <table class="services-table">
-                <thead>
-                    <tr>
-                        <th style="width: 10%;">ID</th>
-                        <th style="width: 20%;">Cliente</th>
-                        <th style="width: 30%;">Asunto</th>
-                        <th style="width: 15%;">Estado</th>
-                        <th style="width: 15%;">Fecha</th>
-                        <th style="width: 10%; text-align: right;">Ver</th>
-                    </tr>
-                </thead>
-                <tbody id="tablaReclamos">
-                    <tr>
-                        <td><code>#REC-5501</code></td>
-                        <td><strong>Constructora del Sur</strong></td>
-                        <td>Vidrio templado roto en obra</td>
-                        <td><span class="status-badge status-open">Abierto</span></td>
-                        <td>12/01/2026</td>
-                        <td style="text-align: right;"><button class="btn btn-modify-light"><i class="bi bi-eye"></i></button></td>
-                    </tr>
-                    <tr>
-                        <td><code>#REC-5490</code></td>
-                        <td><strong>Ana María López</strong></td>
-                        <td>Error de facturación</td>
-                        <td><span class="status-badge status-active">Cerrado</span></td>
-                        <td>10/01/2026</td>
-                        <td style="text-align: right;"><button class="btn btn-modify-light"><i class="bi bi-eye"></i></button></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </main>
+            /* Lista de resultados (Paso 2) */
+            .results-list { max-height: 200px; overflow-y: auto; background: rgba(255,255,255,0.4); border-radius: 10px; border: 1px solid rgba(0,0,0,0.05); }
+            .result-item { padding: 12px; border-bottom: 1px solid rgba(0,0,0,0.05); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+            .result-item:hover { background: rgba(0,123,255,0.1); }
+            .result-item.selected { background: var(--primary-blue); color: white; }
+            .result-item.selected small { color: rgba(255,255,255,0.8); }
 
-    <div id="modalWizard" class="modal-overlay">
-        <div class="modal-content">
-            <div style="text-align: center; margin-bottom: 20px;">
-                <h3 style="color: var(--font-dark); margin: 0;">Nuevo Reclamo</h3>
-            </div>
+            /* SCROLL SOLO PARA PASO 3 */
+            #step3 {
+                max-height: 45vh;     /* ajustable */
+                overflow-y: auto;
+                padding-right: 5px;
+            }
 
-            <div class="step-indicators">
-                <div class="step-dot active" id="dot1">1</div>
-                <div class="step-dot" id="dot2">2</div>
-                <div class="step-dot" id="dot3">3</div>
-            </div>
+            /* Scroll moderno */
+            #step3::-webkit-scrollbar {
+                width: 6px;
+            }
+            #step3::-webkit-scrollbar-thumb {
+                background: rgba(0, 123, 255, 0.4);
+                border-radius: 10px;
+            }
+            #step3::-webkit-scrollbar-track {
+                background: transparent;
+            }
 
-            <div id="step1" class="wizard-step active">
-                <h4 style="margin-bottom: 10px; color: #555;">Paso 1: Buscar Cliente</h4>
-                <p style="font-size: 0.9em; color: #777; margin-bottom: 15px;">Ingrese RUT, Nombre o Email del cliente.</p>
+            /* Estilo para el input cuando es VÁLIDO (Verde) */
+            .w-input.is-valid {
+                border-color: #28a745 !important;
+                padding-right: calc(1.5em + 0.75rem); /* Espacio para el icono */
+                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2328a745' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+                background-repeat: no-repeat;
+                background-position: right calc(0.375em + 0.1875rem) center;
+                background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+            }
 
-                <div style="display: flex; gap: 10px;">
-                    <input type="text" id="inputBusqueda" class="w-input" placeholder="Ej: Constructora..." style="margin-bottom: 0;">
-                    <button class="btn btn-add" onclick="buscarCliente()"><i class="bi bi-search"></i></button>
+            /* Estilo para el input cuando es INVÁLIDO (Rojo) */
+            .w-input.is-invalid {
+                border-color: #dc3545 !important;
+                padding-right: calc(1.5em + 0.75rem);
+                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+                background-repeat: no-repeat;
+                background-position: right calc(0.375em + 0.1875rem) center;
+                background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+            }
+
+            /* Opcional: si quieres que el fondo se pinte suavemente */
+            .w-input.is-valid:focus {
+                box-shadow: 0 0 0 0.25rem rgba(40, 167, 69, 0.25);
+            }
+
+            .w-input.is-invalid:focus {
+                box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+            }
+/* Contenedor para cada fila de formulario */
+.field-container {
+    margin-bottom: 20px; /* Aquí controlas la separación con el siguiente campo */
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Ajuste fino para los labels */
+.field-label {
+    font-size: 0.8em;
+    font-weight: bold;
+    color: #555;
+    margin-bottom: 5px; /* Separación pequeña con el input */
+}
+
+/* El input no debe tener margen inferior propio */
+.w-input {
+    margin-bottom: 0 !important;
+}
+
+/* El error solo tiene un margen superior mínimo */
+.error-text {
+    font-size: 0.8em;
+    color: #dc3545;
+    margin-top: 4px;
+    font-weight: 500;
+}
+        </style>
+        <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    </head>
+    <body>
+        {% include '/application/menu.html' %}
+        <main id="content" class="content">
+            <header class="navbar">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="bi bi-search" style="color: #888;"></i>
+                    <input type="text" placeholder="Buscar reclamo existente..." style="box-shadow: none; background: transparent; padding: 5px;">
                 </div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="font-size: 0.9em;"><strong>Juan Miranda</strong></span>
+                    <div style="width: 35px; height: 35px; background: var(--primary-blue); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center;">JM</div>
+                </div>
+            </header>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <div>
+                    <h1 style="color: white; font-size: 2em; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Gestión de Reclamos</h1>
+                    <p style="color: rgba(255,255,255,0.8);">Listado</p>
+                </div>
+                <button class="btn btn-add" onclick="abrirWizard()">
+                    <i class="bi bi-plus-lg"></i> Nuevo Reclamo
+                </button>
             </div>
-
-            <div id="step2" class="wizard-step">
-                <h4 style="margin-bottom: 10px; color: #555;">Paso 2: Seleccionar Cliente</h4>
-                <p style="font-size: 0.9em; color: #777; margin-bottom: 15px;">Se encontraron varias coincidencias:</p>
-
-                <div id="listaResultados" class="results-list">
-                </div>
-            </div>
-
-            <div id="step3" class="wizard-step">
-                <div style="background: rgba(0,123,255,0.1); padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
-                    <i class="bi bi-person-check-fill" style="color: var(--primary-blue);"></i>
-                    <div>
-                        <strong id="clienteSeleccionadoNombre" style="color: var(--primary-blue);">Cliente</strong>
-                        <div style="font-size: 0.8em; opacity: 0.7;">ID: <span id="clienteSeleccionadoID">--</span></div>
-                    </div>
-                </div>
-
-                <input type="hidden" name="producto_id" id="producto_id_real">
-
-                <div class="mb-3">
-                    <label for="buscador_producto" class="form-label">Buscar Producto</label>
-                    <input class="form-control" list="lista_productos" id="buscador_producto" placeholder="Escribe para buscar..." autocomplete="off">
-
-                    <div id="error-msg" class="text-danger mt-1" style="display:none; font-size: 0.9em;">
-                        Debes seleccionar un producto de la lista.
-                    </div>
-
-                    <datalist id="lista_productos">
-                        <option data-id="101" value="iPhone 13">
-                        <option data-id="102" value="Samsung Galaxy S21">
-                        <option data-id="103" value="MacBook Pro">
-                        <option data-id="104" value="Sony WH-1000XM4">
-                        <option data-id="105" value="Dell XPS 13">
-                    </datalist>
-                </div>
-                <div class="form-group">
-                    <label>Tipo de reclamo</label>
-                    <select class="w-input" name="idTipoReclamo" id="idTipoReclamo">
-                        {% for tipoReclamo in tiposReclamos %}
-                            <option value="{{ tipoReclamo.id }}">{{ tipoReclamo.descripcion }}</option>
+            <div class="glass-card">
+                <table class="services-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 8%;">ID</th>
+                            <th style="width: 25%;">Cliente</th>
+                            <th style="width: 13%;">Tipo Reclamo</th>
+                            <th style="width: 20%;">Producto</th>
+                            <th style="width: 10%;">Estado</th>
+                            <th style="width: 12%;">Fecha</th>
+                            <th style="width: 10%; text-align: right;">Ver</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaReclamos">
+                        {% for reclamo, cliente, producto, tipoproducto, tiporeclamo in reclamos %}
+                        <tr style="cursor:pointer;" onclick="verreclamo({{reclamo.id}})">
+                            <td><code>#REC-{{reclamo.id}}</code></td>
+                            <td><code>#CL-{{reclamo.idCliente}} ({{cliente.cliRazon}}{{cliente.cliNombre}} {{cliente.cliApellido}})</code></td>
+                            <td>{{tiporeclamo.descripcion}}</td>
+                            <td>{{tipoproducto.name}} - {{producto.identificador}}</td>
+                            <td><span class="status-badge status-open">Abierto</span></td>
+                            <td>{{reclamo.fechaAlta}}</td>
+                            <td style="text-align: right;"><button class="btn btn-modify-light"><i class="bi bi-eye"></i></button></td>
+                        </tr>
                         {% endfor %}
-                    </select>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+
+        <div id="modalWizard" class="modal-overlay">
+            <div class="modal-content">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h3 style="color: var(--font-dark); margin: 0;">Alta de Reclamo</h3>
                 </div>
 
-                <div style="display: flex; gap: 15px;">
-                    <div style="flex: 1;">
-                        <label style="font-size: 0.8em; font-weight: bold; color: #555;">Prioridad</label>
-                        <select class="w-input">
-                            {% for prioridad in prioridades %}
-                                <option value="{{ prioridad.id }}">{{ prioridad.descripcion }}</option>
+                <div class="step-indicators">
+                    <div class="step-dot active" id="dot1">1</div>
+                    <div class="step-dot" id="dot2">2</div>
+                    <div class="step-dot" id="dot3">3</div>
+                </div>
+
+                <div id="step1" class="wizard-step active">
+                    <h4 style="margin-bottom: 10px; color: #555;">Paso 1: Buscar Cliente</h4>
+                    <p style="font-size: 0.9em; color: #777; margin-bottom: 15px;">Ingrese RUT, Nombre o Email del cliente.</p>
+
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="inputBusqueda" class="w-input" placeholder="Ej: Constructora..." style="margin-bottom: 0;">
+                        <button class="btn btn-add" onclick="buscarCliente()"><i class="bi bi-search"></i></button>
+                    </div>
+                </div>
+
+                <div id="step2" class="wizard-step">
+                    <h4 style="margin-bottom: 10px; color: #555;">Paso 2: Seleccionar Cliente</h4>
+                    <p style="font-size: 0.9em; color: #777; margin-bottom: 15px;">Se encontraron varias coincidencias:</p>
+
+                    <div id="listaResultados" class="results-list">
+                    </div>
+                </div>
+
+                <div id="step3" class="wizard-step">
+                    <h4 style="margin-bottom: 10px; color: #555;">Paso 3: Datos del Reclamo</h4>
+                    <div style="background: rgba(0,123,255,0.1); padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                        <i class="bi bi-person-check-fill" style="color: var(--primary-blue);"></i>
+                        <div>
+                            <strong id="clienteSeleccionadoNombre" style="color: var(--primary-blue);">Cliente</strong>
+                            <div style="font-size: 0.8em; opacity: 0.7;"><span id="clienteSeleccionadoID">--</span></div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="idProductoCliente" id="idProductoCliente">
+
+                   <div style="width: 100%;">
+                        <label style="font-size: 0.8em; font-weight: bold; color: #555;">
+                            Buscar Producto
+                        </label>
+                        <input type="text" id="buscador_producto" class="w-input" list="lista_productos" placeholder="Escribe para buscar..." autocomplete="off">
+                        <div id="error-msg"style="display:none; font-size: 0.8em; color: #dc3545; margin-top: 1px;">
+                            Debes seleccionar un producto de la lista.
+                        </div>
+                        <datalist id="lista_productos">
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                       <label style="font-size: 0.8em; font-weight: bold; color: #555;">
+                            Tipo de Reclamo
+                        </label>
+                        <select class="w-input" name="idTipoReclamo" id="idTipoReclamo" onchange="loadacciones()">
+                            <option></option>
+                            {% for tipoReclamo in tiposReclamos %}
+                                <option value="{{ tipoReclamo.id }}">{{ tipoReclamo.descripcion }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div style="flex: 1;">
-                        <label style="font-size: 0.8em; font-weight: bold; color: #555;">Origen</label>
-                        <select class="w-input">
-                            <option>Teléfono</option>
-                            <option>Email</option>
-                            <option>Presencial</option>
+
+
+                    <div class="form-group">
+                       <label style="font-size: 0.8em; font-weight: bold; color: #555;">
+                            Tipo Acci&oacute;n
+                        </label>
+                        <select class="w-input" name="idTipoAccion" id="idTipoAccion">
+
                         </select>
                     </div>
-                </div>
+                    <div style="display: flex; gap: 15px;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.8em; font-weight: bold; color: #555;">Teléfono</label>
+                            <input type="tel" id="telefonoAviso" name="telefonoAviso" class="w-input" placeholder="Ej: 2712 66 66">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.8em; font-weight: bold; color: #555;">Celular</label>
+                            <input type="tel" id="celularAviso" name="celularAviso" class="w-input" placeholder="Ej: 099 123 456">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 15px;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.8em; font-weight: bold; color: #555;">Email</label>
+                            <input type="emailAviso" id="emailAviso" class="w-input" placeholder="cliente@email.com">
 
-                <div class="form-group">
-                    <label>Descripción Detallada</label>
-                    <textarea class="w-input" rows="3" placeholder="Detalle lo sucedido..."></textarea>
+                            <div id="email-error" class="text-danger" style="display:none; font-size: 0.75em; margin-top: -10px; margin-bottom: 10px;">
+                                <i class="bi bi-exclamation-triangle"></i> Formato de email inválido
+                            </div>
+                        </div>
+                    </div>
+                     <div style="display: flex; gap: 15px;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.8em; font-weight: bold; color: #555;">Reclamado Por</label>
+                            <input type="reclamadoPor" id="reclamadoPor" class="w-input" placeholder="Jose Peréz de Antel">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 15px;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.8em; font-weight: bold; color: #555;">Prioridad</label>
+                            <select class="w-input" id="idPrioridad" name="idPrioridad">
+                                {% for prioridad in prioridades %}
+                                    <option value="{{ prioridad.id }}">{{ prioridad.descripcion }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.8em; font-weight: bold; color: #555;">Origen</label>
+                            <select class="w-input" name="origen" id="origen">
+                                <option>Teléfono</option>
+                                <option>Email</option>
+                                <option>Presencial</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size: 0.8em; font-weight: bold; color: #555;">
+                            Descripci&oacute;n detallada
+                        </label>
+                        <textarea class="w-input" id="obsAlta" name="obsAlta" rows="3" placeholder="Detalle lo sucedido..."></textarea>
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 25px; padding-top: 15px; border-top: 1px solid rgba(0,0,0,0.1);">
+                    <button class="btn" style="background: transparent; color: #666; border: 1px solid #ddd;" onclick="cerrarWizard()">Cancelar</button>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn" id="btnAtras" style="display: none; background: #eee;" onclick="navegar(-1)">Atrás</button>
+                        <button class="btn btn-add" id="btnSiguiente" onclick="navegar(1)" disabled>Siguiente</button>
+                    </div>
                 </div>
             </div>
-
-            <div style="display: flex; justify-content: space-between; margin-top: 25px; padding-top: 15px; border-top: 1px solid rgba(0,0,0,0.1);">
-                <button class="btn" style="background: transparent; color: #666; border: 1px solid #ddd;" onclick="cerrarWizard()">Cancelar</button>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn" id="btnAtras" style="display: none; background: #eee;" onclick="navegar(-1)">Atrás</button>
-                    <button class="btn btn-add" id="btnSiguiente" onclick="navegar(1)" disabled>Siguiente</button>
-                </div>
-            </div>
-
         </div>
-    </div>
 
-    <script>
-        // --- LÓGICA DEL SIDEBAR (Para que no se rompa el menú incluido) ---
-        // Verificamos si existen los elementos antes de agregar listeners
-        const toggleBtn = document.getElementById('toggleBtn');
-        const sidebar = document.getElementById('sidebar');
-        const content = document.getElementById('content');
+        <script>
+            // Verificamos si existen los elementos antes de agregar listeners
+            const toggleBtn = document.getElementById('toggleBtn');
+            const sidebar = document.getElementById('sidebar');
+            const content = document.getElementById('content');
 
-        if(toggleBtn && sidebar && content) {
-            toggleBtn.addEventListener('click', () => {
-                sidebar.classList.toggle('closed');
-                content.classList.toggle('shifted');
-            });
-        }
+            if(toggleBtn && sidebar && content) {
+                toggleBtn.addEventListener('click', () => {
+                    sidebar.classList.toggle('closed');
+                    content.classList.toggle('shifted');
+                });
+            }
 
-        // --- LÓGICA DEL WIZARD DE RECLAMOS ---
-        let pasoActual = 1;
-        let clienteSeleccionado = null;
+            let pasoActual = 1;
+            let clienteSeleccionado = null;
 
-        function abrirWizard() {
-            resetWizard();
-            document.getElementById('modalWizard').style.display = 'flex';
-        }
+            function abrirWizard() {
+                resetWizard();
+                document.getElementById('modalWizard').style.display = 'flex';
+            }
 
-        function cerrarWizard() {
-            document.getElementById('modalWizard').style.display = 'none';
-        }
+            function verreclamo(idreclamo){
+                window.location.href = `/application/reclamo/${idreclamo}`;
+            }
 
-        function resetWizard() {
-            pasoActual = 1;
-            clienteSeleccionado = null;
-            document.getElementById('inputBusqueda').value = '';
-            document.getElementById('btnSiguiente').innerText = 'Siguiente';
-            document.getElementById('btnSiguiente').disabled = true; // Deshabilitado hasta buscar
-            actualizarUI();
-        }
+            function cerrarWizard() {
+                document.getElementById('modalWizard').style.display = 'none';
+            }
 
-        async function buscarCliente() {
-            const input = document.getElementById('inputBusqueda');
-            const busqueda = input.value;
-            const lista = document.getElementById('listaResultados');
+            function resetWizard() {
+                pasoActual = 1;
+                clienteSeleccionado = null;
+                document.getElementById('inputBusqueda').value = '';
+                document.getElementById('btnSiguiente').innerText = 'Siguiente';
+                document.getElementById('btnSiguiente').disabled = true;
+                actualizarUI();
+            }
 
-            // Recuperamos el token (clave para @jwt_required)
-            const token = localStorage.getItem('access_token');
+            async function buscarCliente() {
+                const input = document.getElementById('inputBusqueda');
+                const busqueda = input.value;
+                const lista = document.getElementById('listaResultados');
 
-            if (busqueda.length < 2) return alert("Ingrese al menos 2 caracteres");
+                // Recuperamos el token (clave para @jwt_required)
+                const token = localStorage.getItem('access_token');
 
-            // UI: Feedback visual de carga
-            input.disabled = true;
-            document.body.style.cursor = 'wait';
+                if (busqueda.length < 2) return alert("Ingrese al menos 2 caracteres");
 
-            try {
-                // Solicitamos 'per_page=21'. Si la API devuelve 21, sabemos que nos pasamos del límite de 20
-                // sin necesidad de traer miles de registros.
-                const response = await fetch(`/api/clientes?search=${encodeURIComponent(busqueda)}&per_page=21`, {
+                // UI: Feedback visual de carga
+                input.disabled = true;
+                document.body.style.cursor = 'wait';
+
+                try {
+                    // Solicitamos 'per_page=21'. Si la API devuelve 21, sabemos que nos pasamos del límite de 20
+                    // sin necesidad de traer miles de registros.
+                    const response = await fetch(`/api/clientes?search=${encodeURIComponent(busqueda)}&per_page=21`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error("Error en la comunicación con el servidor");
+                    }
+
+                    const data = await response.json();
+
+                    // 1. REGLA DE NEGOCIO: Si hay más de 20 resultados, obligar a filtrar
+                    // Usamos data.total_results que viene de tu paginación de Flask
+                    if (data.total_results > 20) {
+                        alert(`La búsqueda arrojó demasiados resultados (${data.total_results}).\nPor favor, refine su criterio de búsqueda.`);
+                        return;
+                    }
+
+                    // 2. Si no hay resultados
+                    if (data.clientes.length === 0) {
+                        alert("No se encontraron clientes con ese criterio.");
+                        return;
+                    }
+
+                    // 3. Renderizado de resultados (menos de 20)
+                    lista.innerHTML = ''; // Limpiar lista anterior
+
+                    data.clientes.forEach(c => {
+                        // Lógica de visualización: Preferimos Razón Social, si no Nombre + Apellido
+                        let nombreMostrar = c.cliRazon ? c.cliRazon : `${c.cliNombre || ''} ${c.cliApellido || ''}`.trim();
+                        if (!nombreMostrar) nombreMostrar = "Cliente Sin Nombre";
+
+                        // Subtítulo: Usamos el ID del sistema y el Documento (RUT/CI)
+                        const documento = c.nroID || 'Sin Doc.';
+                        const subtitulo = `ID: ${c.idCliente} - Doc: ${documento}`;
+
+                        // Escapamos comillas simples para no romper el string del onclick
+                        const nombreSafe = nombreMostrar.replace(/'/g, "\\'");
+                        const idParaSeleccionar = `ID: ${c.idCliente}`; // Esto es lo que se mostrará en el paso 3
+
+                        lista.innerHTML += `
+                            <div class="result-item" onclick="seleccionar(this, '${nombreSafe}', '${idParaSeleccionar}', ${c.idCliente}, '${c.Telefono}', '${c.Celular}', '${c.eMailAviso}')">
+                                <div>
+                                    <strong>${nombreMostrar}</strong><br>
+                                    <small style="color: #666;">${subtitulo}</small>
+                                </div>
+                                <i class="bi bi-chevron-right"></i>
+                            </div>
+                        `;
+                    });
+
+                    // 4. Todo salió bien, avanzamos al paso 2 (Selección)
+                    navegar(1);
+
+                } catch (error) {
+                    console.error("Error buscando clientes:", error);
+                    alert("Ocurrió un error al intentar buscar el cliente. Verifique su conexión.");
+                } finally {
+                    // Restauramos la UI
+                    input.disabled = false;
+                    document.body.style.cursor = 'default';
+                    // Mantenemos el foco en el input por si quiere corregir
+                    input.focus();
+                }
+            }
+
+            async function seleccionar(elemento, nombre, id, idcliente, telefono, celular, email) {
+                // Recuperamos el token (clave para @jwt_required)
+                const token = localStorage.getItem('access_token');
+
+                // Estilos
+                document.querySelectorAll('.result-item').forEach(e => e.classList.remove('selected'));
+                elemento.classList.add('selected');
+
+                // Datos
+                clienteSeleccionado = { nombre: nombre, id: idcliente };
+                document.getElementById('clienteSeleccionadoNombre').innerText = nombre;
+                document.getElementById('emailAviso').value = email;
+                document.getElementById('telefonoAviso').value = telefono;
+                document.getElementById('celularAviso').value = celular;
+                document.getElementById('clienteSeleccionadoID').innerText = id;
+
+                 //Hay que ir a buscar los productos del cliente
+                 const response = await fetch(`/api/productos-listado?idCliente=${idcliente}`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
@@ -353,203 +544,205 @@
 
                 const data = await response.json();
 
-                // 1. REGLA DE NEGOCIO: Si hay más de 20 resultados, obligar a filtrar
-                // Usamos data.total_results que viene de tu paginación de Flask
-                if (data.total_results > 20) {
-                    alert(`La búsqueda arrojó demasiados resultados (${data.total_results}).\nPor favor, ingrese un criterio más específico.`);
-                    return; // Cortamos ejecución, no avanza de paso
-                }
+                // Limpiamos el listado de productos
+                const datalist = document.getElementById('lista_productos');
+                datalist.innerHTML = '';
 
-                // 2. Si no hay resultados
-                if (data.clientes.length === 0) {
-                    alert("No se encontraron clientes con ese criterio.");
-                    return;
-                }
+                // 4. RECORRER y CREAR opciones
+                data.productos.forEach(producto => {
+                    // Crear el elemento <option>
+                    const opcion = document.createElement('option');
 
-                // 3. Renderizado de resultados (menos de 20)
-                lista.innerHTML = ''; // Limpiar lista anterior
+                    // Asignar el valor visible (lo que se busca)
+                    opcion.value = producto.producto + " (" + producto.identificador + "): " + producto.abreviacion + producto.importe;
 
-                data.clientes.forEach(c => {
-                    // Lógica de visualización: Preferimos Razón Social, si no Nombre + Apellido
-                    let nombreMostrar = c.cliRazon ? c.cliRazon : `${c.cliNombre || ''} ${c.cliApellido || ''}`.trim();
-                    if (!nombreMostrar) nombreMostrar = "Cliente Sin Nombre";
+                    // Asignar tu atributo personalizado data-id
+                    opcion.setAttribute('data-id', producto.id);
 
-                    // Subtítulo: Usamos el ID del sistema y el Documento (RUT/CI)
-                    const documento = c.nroID || 'Sin Doc.';
-                    const subtitulo = `ID: ${c.idCliente} - Doc: ${documento}`;
-
-                    // Escapamos comillas simples para no romper el string del onclick
-                    const nombreSafe = nombreMostrar.replace(/'/g, "\\'");
-                    const idParaSeleccionar = `ID: ${c.idCliente}`; // Esto es lo que se mostrará en el paso 3
-
-                    lista.innerHTML += `
-                        <div class="result-item" onclick="seleccionar(this, '${nombreSafe}', '${idParaSeleccionar}', ${c.idCliente})">
-                            <div>
-                                <strong>${nombreMostrar}</strong><br>
-                                <small style="color: #666;">${subtitulo}</small>
-                            </div>
-                            <i class="bi bi-chevron-right"></i>
-                        </div>
-                    `;
+                    // Agregar al datalist
+                    datalist.appendChild(opcion);
                 });
 
-                // 4. Todo salió bien, avanzamos al paso 2 (Selección)
-                navegar(1);
-
-            } catch (error) {
-                console.error("Error buscando clientes:", error);
-                alert("Ocurrió un error al intentar buscar el cliente. Verifique su conexión.");
-            } finally {
-                // Restauramos la UI
-                input.disabled = false;
-                document.body.style.cursor = 'default';
-                // Mantenemos el foco en el input por si quiere corregir
-                input.focus();
+                // Habilitar siguiente
+                document.getElementById('btnSiguiente').disabled = false;
             }
-        }
 
-        async function seleccionar(elemento, nombre, id, idcliente) {
-            // Recuperamos el token (clave para @jwt_required)
-            const token = localStorage.getItem('access_token');
+            function validarformulario(){
+                if(document.getElementById('idTipoReclamo').value == "") alert("Debe especificar accion");
+                return true;
+            }
 
-            // Estilos
-            document.querySelectorAll('.result-item').forEach(e => e.classList.remove('selected'));
-            elemento.classList.add('selected');
+            async function altareclamo(){
+                if(!validarformulario()) return false;
 
-            // Datos
-            clienteSeleccionado = { nombre: nombre, id: id };
-            document.getElementById('clienteSeleccionadoNombre').innerText = nombre;
-            document.getElementById('clienteSeleccionadoID').innerText = id;
 
-             //Hay que ir a buscar los productos del cliente
-             const response = await fetch(`/api/productos-listado?idCliente=${idcliente}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                // 1. Recolección de datos
+                const datosReclamo = {
+                    idPais: 'UY',
+                    idCliente: clienteSeleccionado?.id,
+                    idProductoCliente: document.getElementById('idProductoCliente').value,
+                    idTipoReclamo: document.getElementById('idTipoReclamo').value,
+                    idTipoAccion: document.getElementById('idTipoAccion').value,
+                    telefonoAviso: document.getElementById('telefonoAviso').value,
+                    celularAviso: document.getElementById('celularAviso').value,
+                    emailAviso: document.getElementById('emailAviso').value,
+                    altaPor: 'usuario',
+                    obsAlta: document.getElementById('obsAlta').value,
+                    idPrioridad: document.getElementById('idPrioridad').value,
+                    reclamadoPor: document.getElementById('reclamadoPor').value,
+                    origen: document.getElementById('origen').value,
+                    whatsapp: true,
+                };
+
+                try {
+                    // 2. Envío de la petición
+                    const response = await fetch('/api/reclamo', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            // Si usas JWT, aquí iría la autorización
+                            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        },
+                        body: JSON.stringify(datosReclamo)
+                    });
+
+                    // 3. Procesamiento de la respuesta
+                    if (response.ok) {
+                        const resultado = await response.json();
+                        alert("✅ ¡Éxito! Reclamo creado con ID: " + resultado.id);
+                        cerrarWizard(); // Función para cerrar el modal
+                        location.reload(); // Recargamos para ver el nuevo reclamo en la lista
+                    } else {
+                        const errorData = await response.json();
+                        alert("❌ Error: " + (errorData.message || "No se pudo crear el reclamo"));
+                    }
+
+                } catch (error) {
+                    console.error("Error en la conexión:", error);
+                    alert("🌐 Hubo un problema de conexión con el servidor.");
                 }
-            });
-
-            if (!response.ok) {
-                throw new Error("Error en la comunicación con el servidor");
             }
 
-            const data = await response.json();
+            function loadacciones(){
+                idTipoReclamo = document.getElementById('idTipoReclamo').value;
+                const token = localStorage.getItem('access_token');
+                fetch(`/api/tipoaccionreclamo/${idTipoReclamo}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                  const subSelect = document.getElementById('idTipoAccion');
+                  subSelect.innerHTML = '<option value="">Seleccionar</option>';
+                  data.forEach(sub => {
+                    const option = document.createElement('option');
+                    option.value = sub.idTipoAccion;
+                    option.textContent = sub.descripcion;
+                    subSelect.appendChild(option);
+                  });
+                })
+                .catch(err => console.error('Error cargando subtipos:', err));
+            }
 
-            // Limpiamos el listado de productos
-            const datalist = document.getElementById('lista_productos');
-            datalist.innerHTML = '';
+            function navegar(direccion) {
+                // Validaciones
+                if(direccion === 1) {
+                    if(pasoActual === 1) {
+                         // La validación se hace en la función buscarCliente
+                    } else if(pasoActual === 2) {
+                        if(!clienteSeleccionado) return alert("Debe seleccionar un cliente de la lista.");
+                    } else if(pasoActual === 3) {
+                       altareclamo().then(resultado => {
+                            if(resultado){
+                                cerrarWizard();
+                                return;
+                            }else{
+                                alert("no verifico");
+                                pasoActual=2;
+                            }
+                        });
+                       return;
+                    }
+                }
 
-            // 4. RECORRER y CREAR opciones
-            data.productos.forEach(producto => {
-                // Crear el elemento <option>
-                const opcion = document.createElement('option');
+                // Cambiar paso visualmente
+                document.getElementById('step' + pasoActual).classList.remove('active');
+                document.getElementById('dot' + pasoActual).classList.remove('active');
+                if(direccion === 1) document.getElementById('dot' + pasoActual).classList.add('completed');
+                else document.getElementById('dot' + pasoActual).classList.remove('completed');
 
-                // Asignar el valor visible (lo que se busca)
-                opcion.value = producto.producto + " (" + producto.identificador + "): " + producto.abreviacion + producto.importe;
+                pasoActual += direccion;
 
-                // Asignar tu atributo personalizado data-id
-                opcion.setAttribute('data-id', producto.id);
+                document.getElementById('step' + pasoActual).classList.add('active');
+                document.getElementById('dot' + pasoActual).classList.add('active');
+                document.getElementById('dot' + pasoActual).classList.remove('completed');
 
-                // Agregar al datalist
-                datalist.appendChild(opcion);
-            });
+                actualizarUI();
+            }
 
-            // Habilitar siguiente
-            document.getElementById('btnSiguiente').disabled = false;
-        }
+            function actualizarUI() {
+                const btnAtras = document.getElementById('btnAtras');
+                const btnSig = document.getElementById('btnSiguiente');
 
-        function navegar(direccion) {
-            // Validaciones
-            if(direccion === 1) {
+                btnAtras.style.display = pasoActual > 1 ? 'block' : 'none';
+
                 if(pasoActual === 1) {
-                     // La validación se hace en la función buscarCliente
+                    btnSig.disabled = true; // Bloqueado hasta buscar
                 } else if(pasoActual === 2) {
-                    if(!clienteSeleccionado) return alert("Debe seleccionar un cliente de la lista.");
+                    btnSig.disabled = clienteSeleccionado ? false : true;
                 } else if(pasoActual === 3) {
-                    alert("Reclamo Creado Exitosamente");
-                    cerrarWizard();
+                    btnSig.disabled = false;
+                    btnSig.innerText = "Confirmar Alta";
+                    btnSig.style.background = "var(--success-green)";
                     return;
                 }
+
+                if(pasoActual !== 3) {
+                    btnSig.innerText = "Siguiente";
+                    btnSig.style.background = "var(--primary-blue)";
+                }
             }
 
-            // Cambiar paso visualmente
-            document.getElementById('step' + pasoActual).classList.remove('active');
-            document.getElementById('dot' + pasoActual).classList.remove('active');
-            if(direccion === 1) document.getElementById('dot' + pasoActual).classList.add('completed');
-            else document.getElementById('dot' + pasoActual).classList.remove('completed');
+            const inputVisible = document.getElementById('buscador_producto');
+                const inputOculto = document.getElementById('idProductoCliente');
+                const datalist = document.getElementById('lista_productos');
+                const errorMsg = document.getElementById('error-msg');
 
-            pasoActual += direccion;
+                // Escuchar cuando el usuario termina de escribir o selecciona algo
+                inputVisible.addEventListener('change', function() {
+                let valorEscrito = this.value;
+                let opcionValida = false;
+                let idReal = '';
 
-            document.getElementById('step' + pasoActual).classList.add('active');
-            document.getElementById('dot' + pasoActual).classList.add('active');
-            document.getElementById('dot' + pasoActual).classList.remove('completed');
+                // Buscamos si lo que escribió coincide con alguna opción de la lista
+                for (let i = 0; i < datalist.options.length; i++) {
+                    if (datalist.options[i].value === valorEscrito) {
+                        // ¡Coincidencia encontrada!
+                        opcionValida = true;
+                        idReal = datalist.options[i].getAttribute('data-id');
+                        break;
+                    }
+                }
 
-            actualizarUI();
-        }
+            if (opcionValida) {
+                // Si es válido, guardamos el ID en el input oculto
+                inputOculto.value = idReal;
+                errorMsg.style.display = 'none';
+                inputVisible.classList.remove('is-invalid');
+                inputVisible.classList.add('is-valid');
+                console.log("ID Seleccionado:", inputOculto.value); // Para que veas en consola
+            } else {
+                // Si escribió cualquier cosa, reseteamos todo
+                inputOculto.value = ''; // Borramos el ID
+                inputVisible.value = ''; // Borramos lo que escribió (Opcional, a veces es mejor dejarlo para que corrija)
 
-        function actualizarUI() {
-            const btnAtras = document.getElementById('btnAtras');
-            const btnSig = document.getElementById('btnSiguiente');
-
-            btnAtras.style.display = pasoActual > 1 ? 'block' : 'none';
-
-            if(pasoActual === 1) {
-                btnSig.disabled = true; // Bloqueado hasta buscar
-            } else if(pasoActual === 2) {
-                btnSig.disabled = clienteSeleccionado ? false : true;
-            } else if(pasoActual === 3) {
-                btnSig.disabled = false;
-                btnSig.innerText = "Confirmar Alta";
-                btnSig.style.background = "var(--success-green)";
-                return;
+                // Le avisamos visualmente (estilo Bootstrap)
+                inputVisible.classList.add('is-invalid');
+                errorMsg.style.display = 'block';
             }
-
-            if(pasoActual !== 3) {
-                btnSig.innerText = "Siguiente";
-                btnSig.style.background = "var(--primary-blue)";
-            }
-        }
-
-        const inputVisible = document.getElementById('buscador_producto');
-    const inputOculto = document.getElementById('producto_id_real');
-    const datalist = document.getElementById('lista_productos');
-    const errorMsg = document.getElementById('error-msg');
-
-    // Escuchar cuando el usuario termina de escribir o selecciona algo
-    inputVisible.addEventListener('change', function() {
-        let valorEscrito = this.value;
-        let opcionValida = false;
-        let idReal = '';
-
-        // Buscamos si lo que escribió coincide con alguna opción de la lista
-        for (let i = 0; i < datalist.options.length; i++) {
-            if (datalist.options[i].value === valorEscrito) {
-                // ¡Coincidencia encontrada!
-                opcionValida = true;
-                idReal = datalist.options[i].getAttribute('data-id');
-                break;
-            }
-        }
-
-        if (opcionValida) {
-            // Si es válido, guardamos el ID en el input oculto
-            inputOculto.value = idReal;
-            errorMsg.style.display = 'none';
-            inputVisible.classList.remove('is-invalid');
-            inputVisible.classList.add('is-valid');
-            console.log("ID Seleccionado:", inputOculto.value); // Para que veas en consola
-        } else {
-            // Si escribió cualquier cosa, reseteamos todo
-            inputOculto.value = ''; // Borramos el ID
-            inputVisible.value = ''; // Borramos lo que escribió (Opcional, a veces es mejor dejarlo para que corrija)
-
-            // Le avisamos visualmente (estilo Bootstrap)
-            inputVisible.classList.add('is-invalid');
-            errorMsg.style.display = 'block';
-        }
-    });
-
-    </script>
-</body>
-</html>
+        });
+        </script>
+    </body>
+    </html>
