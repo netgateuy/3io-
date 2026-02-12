@@ -1,6 +1,7 @@
 from flask import request, jsonify, session
 from time import gmtime, strftime
 import base64, re
+import json
 from ..models.Contract import Contract
 from ..models.Product import ProductContract, ContractProductFieldValue, ProductFieldPrice, ProductFieldValue, ProductField, Product, ProductClient, ClientProductFieldValue, ProductFieldValues, ProductFieldExtraValue
 from ..models.Equipo import Equipo, Marca, Modelo, Proveedor, EquipoTipo, EquipoFamilia, EquipoContract
@@ -106,12 +107,83 @@ def deleteproduct(id):
         productClient.fechafin = datetime.now().strftime('%Y-%m-%d')
         db.session.add(productClient)
         db.session.commit()
+
+        return jsonify(
+            idproduct=id,
+            observation="Producto modificado correctamente.",
+            error=False,
+            serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        )
+
     except Exception as e:
         return jsonify(
             observation=str(e),
             error=True,
             serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
         )
+
+
+def notificarcliente(cliente, type):
+    notification = {}
+    notification["event.type"] = type
+    notification["idcliente"] = cliente.idCliente
+    notification["id"] = cliente.id
+    notification["idexterno"] = cliente.idexterno
+    notification["clinombre"] = cliente.clinombre
+    notification["clirazon"] = cliente.clirazon
+    notification["cliapellido"] = cliente.cliapellido
+    notification["celular"] = cliente.celular
+    notification["telefono"] = cliente.telefono
+    notification["email"] = cliente.email
+    notification["direccion"] = cliente.Calle + " " + cliente.Nro + " " + cliente.Apto + " " + cliente.Manzana  + " " + cliente.Solar
+    notification["pais"] = {"id": pais.id , "idexterno": pais.idexterno}
+    notification["tipoid"] = {"id": tipoid.id, "tipocli": tipoid.tipocli, "idexterno": tipoid.idexterno}
+    notification["nroid"] = cliente.nroid
+    notification["clifantasia"] = cliente.clifantasia
+    notification["formapago"] = {"id":formapago.id, "idexterno":formapago.idexterno, "tipopago" : {"id": tipopago.id,"idexterno": tipopago.idexterno}}
+
+
+def notificarproducto(productClient, content, cliente, moneda, type):
+    notification = ""
+    try:
+        # Notificamos que se modifico el produco
+        producttype = Product.query.filter_by(id=content["idproducto"]).first()
+        notification = {}
+        notification["event.type"] = type
+        notification["idproducto"] = productClient.id
+        notification["idservicioexterno"] = productClient.externalid
+        notification["idproductoexterno"] = producttype.externalid
+        notification["cliente"] = {"id": cliente.idCliente, "idexterno": cliente.externalid}
+        notification["moneda"] = {"id": moneda.idMoneda, "idexterno": moneda.idExterno}
+        notification["importe"] = productClient.importe
+        notification["fechainicio"] = str(productClient.fechainicio)
+        notification["fechafin"] = str(productClient.fechafin) if productClient.fechafin else ""
+        notification["idperiodo"] = productClient.idperiodo
+        notification["obs"] = productClient.identificador
+        notification["idmoneda"] = productClient.idmoneda
+
+        headers = {
+            "Content-Type": "application/json"
+        }
+
+        response = requests.post(producttype.notifications, json=notification, headers=headers)
+        productClient.status = response.status_code
+        db.session.commit()
+        external_id = None
+        if response.ok:
+            respuesta_json = response.json()
+
+            # Obtenemos el 'externalid'. Usamos .get() por seguridad (devuelve None si no existe)
+            external_id = respuesta_json.get('externalid')
+        notification = str(notification)
+        notificationstatus = 200
+        notificationobs = "ok"
+    except Exception as e:
+        external_id = None
+        notificationstatus = 500
+        notificationobs = str(e)
+        notification = ""
+    return notificationstatus, notificationobs, notification, external_id
 
 @api.route('/producto',methods=['PUT'])
 @jwt_required()
@@ -129,6 +201,8 @@ def updateproduct():
         productClient.importe = content["importe"]
         db.session.add(productClient)
         db.session.commit()
+        cliente = Cliente.query.filter_by(idCliente=productClient.idclient).first()
+        moneda = Moneda.query.filter_by(idMoneda=productClient.idmoneda).first()
 
         #Vemos si modifica producto o mantiene
         if content["idproductonew"] == content["id"]:
@@ -159,10 +233,16 @@ def updateproduct():
                         field.value = value
                         db.session.add(field)
                         db.session.commit()
+
+        notificationstatus, notificationobs, notification, external_id = notificarproducto(productClient, content, cliente, moneda, "product.updated")
+
         return jsonify(
             contract=content["id"],
             observation="Producto modificado correctamente.",
             error=False,
+            notificationstatus=notificationstatus,
+            notificationobs=notificationobs,
+            notification=notification,
             serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
         )
     except Exception as e:
@@ -189,6 +269,10 @@ def addproduct():
         productClient.importe = content["importe"]
         db.session.add(productClient)
         db.session.commit()
+        content["idproducto"] = content["idproductonew"]
+
+        cliente = Cliente.query.filter_by(idCliente=productClient.idclient).first()
+        moneda = Moneda.query.filter_by(idMoneda=productClient.idmoneda).first()
 
         #Damos de alta Fields Nuevos
         for key, value in content.items():
@@ -204,10 +288,18 @@ def addproduct():
                     db.session.add(field)
                     db.session.commit()
 
+        notificationstatus, notificationobs, notification, external_id = notificarproducto(productClient, content, cliente, moneda, "product.created")
+
+        productClient.externalid = external_id
+        db.session.commit()
+
         return jsonify(
             contract=content["id"],
             observation="Producto ingresado correctamente.",
             error=False,
+            notificationstatus=notificationstatus,
+            notificationobs=notificationobs,
+            notification=notification,
             serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
         )
     except Exception as e:
@@ -682,12 +774,17 @@ def update_client(id):
         cliente.Calle = content["Calle"]
         cliente.nroPuerta = content["nroPuerta"]
         cliente.Apto = content["Apto"]
+        cliente.Manzana = content["Manzana"]
+        cliente.Solar = content["Solar"]
+        cliente.Padron = content["Padron"]
         cliente.Telefono = content["Telefono"]
         cliente.Celular = content["Celular"]
         cliente.idTipoPago = content["idTipoPago"]
         cliente.idFormaPago = content["idFormaPago"]
+        cliente.FechaNacimiento = content["fechaNacimiento"]
         cliente.eMailAviso = content["eMailAviso"]
         cliente.Contacto = content["Contacto"]
+        cliente.observaciones = content["observaciones"]
         db.session.merge(cliente)
         db.session.commit()
 
@@ -755,6 +852,7 @@ def addoportunidad():
             cliente.idFormaPago = content["idFormaPago"]
             cliente.eMailAviso = content["eMailAviso"]
             cliente.FechaAlta = content["fechaAlta"]
+            cliente.FechaNacimiento = content["fechaNacimiento"]
             cliente.Contacto = content["Contacto"]
             db.session.add(cliente)
         else:
@@ -777,6 +875,7 @@ def addoportunidad():
             cliente.idTipoPago = content["idTipoPago"]
             cliente.idFormaPago = content["idFormaPago"]
             cliente.eMailAviso = content["eMailAviso"]
+            cliente.FechaNacimiento = content["fechaNacimiento"]
             cliente.Contacto = content["Contacto"]
             db.session.merge(cliente)
             db.session.commit()
@@ -908,48 +1007,62 @@ def addetapaoportunidad():
             serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
         )
 
+
+
+
 @api.route('/cliente',methods=['POST'])
 @jwt_required()
 def addcliente():
     try:
         content = request.json
         cliente  = Cliente()
-        cliente.idpais = content["idpais"]
-        cliente.idcliente = content["idcliente"]
-        cliente.idsucursal = content["idsucursal"]
-        cliente.clinombre = content["clinombre"]
-        cliente.cliapellido = content["cliapellido"]
-        cliente.clirazon = content["clirazon"]
-        cliente.clifantasia = content["clifantasia"]
-        cliente.idtipoid = content["idtipoid"]
-        cliente.nroid = content["nroid"]
-        cliente.idpais1 = content["idpais1"]
-        cliente.idsubpais = content["idsubpais"]
-        cliente.idciudad = content["idciudad"]
-        cliente.idbarrio = content["idbarrio"]
-        cliente.calle = content["calle"]
-        cliente.nropuerta = content["nropuerta"]
-        cliente.idciudad = content["idciudad"]
-        cliente.apto = content["apto"]
-        cliente.codigopostal = content["codigopostal"]
-        cliente.telefono = content["telefono"]
-        cliente.celular = content["celular"]
-        cliente.idtipopago = content["idtipopago"]
-        cliente.idformapago = content["idformapago"]
-        cliente.emailaviso = content["emailaviso"]
-        cliente.idvendedor = content["idvendedor"]
-        cliente.fechaalta = content["fechaalta"]
-        cliente.mailaviso = content["mailaviso"]
-        cliente.idformapago = content["idformapago"]
+        ultimo_cliente = Cliente.query.order_by(Cliente.idCliente.desc()).first()
+        cliente.idPais = content["idPais"]
+        cliente.idCliente = ultimo_cliente.idCliente + 1
+        cliente.idSucursal = content["idSucursal"]
+        cliente.cliNombre = content["cliNombre"]
+        cliente.cliApellido = content["cliApellido"]
+        cliente.cliRazon = content["cliRazon"]
+        cliente.cliFantasia = content["cliFantasia"]
+        cliente.idTipoID = content["idTipoID"]
+        cliente.nroID = content["nroID"]
+        cliente.idPais1 = content["idPais"]
+        cliente.idSubPais = content["idSubPais"]
+        cliente.idCiudad = content["idCiudad"]
+        cliente.Calle = content["calle"]
+        cliente.nroPuerta = content["nroPuerta"]
+        cliente.Apto = content["apto"]
+        cliente.Manzana = content["manzana"]
+        cliente.Solar = content["solar"]
+        cliente.Padron = content["padron"]
+        cliente.CodigoPostal = content["codigoPostal"]
+        cliente.Telefono = content["telefono"]
+        cliente.Celular = content["celular"]
+        cliente.idTipoPago = content["idTipoPago"]
+        cliente.idFormaPago = content["idFormaPago"]
+        cliente.eMailAviso = content["emailAviso"]
+        cliente.idVendedor = content["idVendedor"]
+        cliente.FechaAlta = datetime.now()
+        cliente.FechaNacimiento = content["fechaNacimiento"]
         cliente.contacto = content["contacto"]
+        cliente.observaciones = content["observaciones"]
         db.session.add(cliente)
         db.session.commit()
+
+        #Debemos enviar notificacion de alta de cliente
+
+        return jsonify({
+            'id': cliente.id,
+            'idcliente': cliente.idCliente,
+            'obs': 'Cliente dado de alta correctamente.'
+        }), 200
+
     except Exception as e:
         return jsonify(
-            observation=str(e),
-            error="yes",
+            observation="Error al dar de alta el cliente: " + str(e),
+            error=True,
             serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
-        )
+        ), 500
 
 @api.route('/cliente/filter/', methods=['GET'])
 @jwt_required()
@@ -1236,9 +1349,9 @@ def getOportunidad(oportunidad, contratos, cliente):
                         extrafieldsvalues = ProductFieldExtraValue.query.filter_by(idProduct = fc.idProduct, idField = fc.idProductField,idFieldValue=pc.id).all()
 
                         for extraf in extrafieldsvalues:
-                            extrefields.append({"id": extraf.id, "name":extraf.name, "value": extraf.value})
+                            extrefields.append({"id": extraf.id, "name":extraf.internalname, "value": extraf.value})
 
-                fields_json.append({"id": fc.id,"idfield": fc.idProductField, "name": f.name, "value": fc.value,"extrafields": extrefields})
+                fields_json.append({"id": fc.id,"idfield": fc.idProductField, "name": f.internalname, "value": fc.value,"extrafields": extrefields})
 
             moneda = Moneda.query.filter_by(idMoneda=p.idmoneda).first()
             plazo = Plazo.query.filter_by(idPlazo=p.idperiodo).first()

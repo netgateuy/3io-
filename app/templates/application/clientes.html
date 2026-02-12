@@ -191,11 +191,15 @@
             <form id="formNuevoCliente" style="display: contents;">
                 <div class="modal-body-scroll">
                     <div class="form-grid">
-                        <div class="form-group full-width">
-                            <label>Razón Social (Si aplica)</label>
-                            <input type="text" id="cliRazon" placeholder="Ej: Empresa S.A.">
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label>Sucursal</label>
+                            <select id="idSucursal">
+                                {% for sucursal in sucursales %}
+                                  <option value="{{ sucursal.idSucursal }}">{{ sucursal.nombre }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" >
                             <label>Nombre *</label>
                             <input type="text" id="cliNombre" required>
                         </div>
@@ -206,9 +210,9 @@
                         <div class="form-group">
                             <label>Tipo Documento</label>
                             <select id="idTipoID">
-                                <option value="CI">C.I.</option>
-                                <option value="RUT">R.U.T.</option>
-                                <option value="DNI">D.N.I.</option>
+                                {% for tipoid in tipoids %}
+                                  <option value="{{ tipoid.idtipoid }}">{{ tipoid.descripcion }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                         <div class="form-group">
@@ -216,8 +220,20 @@
                             <input type="text" id="nroID" required>
                         </div>
                         <div class="form-group full-width">
+                            <label>Razón Social</label>
+                            <input type="text" id="cliRazon" placeholder="Ej: Comintur S.A.">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Fantasía</label>
+                            <input type="text" id="cliFantasia" placeholder="Ej: Netgate">
+                        </div>
+                        <div class="form-group">
+                            <label>Fecha de Nacimiento</label>
+                            <input type="date" id="fechaNacimiento">
+                        </div>
+                        <div class="form-group full-width">
                             <label>Email de Contacto</label>
-                            <input type="email" id="eMailAviso" placeholder="correo@ejemplo.com">
+                            <input type="emailAviso" id="emailAviso" placeholder="correo@ejemplo.com">
                         </div>
                         <div class="form-group">
                             <label>Teléfono Fijo</label>
@@ -226,6 +242,25 @@
                         <div class="form-group">
                             <label>Celular</label>
                             <input type="text" id="celular">
+                        </div>
+                         <div class="form-group">
+                            <label>Pa&iacute;s</label>
+                            <select id="idPais" onchange="loadsubpaises()">
+                                <option>Seleccionar</option>
+                                {% for pais in paises %}
+                                  <option value="{{ pais.idPais }}">{{ pais.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                         <div class="form-group">
+                            <label>Departamento</label>
+                            <select id="idSubPais" onchange="loadciudades()">
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Ciudad</label>
+                            <select id="idCiudad">
+                            </select>
                         </div>
                         <div class="form-group full-width">
                             <label>Dirección</label>
@@ -240,20 +275,44 @@
                             <input type="text" id="apto">
                         </div>
                         <div class="form-group">
-                            <label>Ciudad</label>
-                            <input type="text" id="ciudad">
+                            <label>Código Postal</label>
+                            <input type="text" id="codigoPostal">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Tipo Pago</label>
+                                <select id="idTipoPago" name="idTipoPago">
+                            <option value="">Selecciona un tipo pago</option>
+                            {% for tp in tipo_pago %}
+                            <option value="{{tp.idTipoPago}}">
+                                {{tp.descripcion}}
+                            </option>
+                            {% endfor %}
+                        </select>
                         </div>
                         <div class="form-group">
-                            <label>Departamento</label>
-                            <select id="idDepartamento">
-                                <option value="1">Montevideo</option>
-                                <option value="2">Canelones</option>
-                                <option value="3">Maldonado</option>
+                            <label>Forma Pago (*)</label>
+                            <select id="idFormaPago" name="idFormaPago">
                             </select>
+                       </div>
+                        <div class="form-group">
+                            <label>Vendedor</label>
+                           <select id="idVendedor" name="idTipoPago">
+                            {% for vendedor in vendedores %}
+                            <option value="{{vendedor.idVendedor}}">
+                                {{vendedor.nombre}}
+                            </option>
+                            {% endfor %}
+                           </select>
+                       </div>
+
+                          <div class="form-group">
+                            <label>Conctacto</label>
+                            <input type="text" id="contacto">
                         </div>
                         <div class="form-group full-width">
                             <label>Notas / Observaciones</label>
-                            <textarea id="obs" rows="3"></textarea>
+                            <textarea id="observaciones" rows="3"></textarea>
                         </div>
                     </div>
                 </div>
@@ -301,24 +360,34 @@
 
         async function guardarCliente() {
             const data = {
+                idSucursal: document.getElementById('idSucursal').value,
                 cliRazon: document.getElementById('cliRazon').value,
+                cliFantasia: document.getElementById('cliFantasia').value,
                 cliNombre: document.getElementById('cliNombre').value,
                 cliApellido: document.getElementById('cliApellido').value,
                 idTipoID: document.getElementById('idTipoID').value,
                 nroID: document.getElementById('nroID').value,
-                eMailAviso: document.getElementById('eMailAviso').value,
+                emailAviso: document.getElementById('emailAviso').value,
                 telefono: document.getElementById('telefono').value,
                 celular: document.getElementById('celular').value,
                 calle: document.getElementById('calle').value,
                 nroPuerta: document.getElementById('nroPuerta').value,
                 apto: document.getElementById('apto').value,
-                ciudad: document.getElementById('ciudad').value,
-                idDepartamento: document.getElementById('idDepartamento').value
+                codigoPostal: document.getElementById('codigoPostal').value,
+                idPais: document.getElementById('idPais').value,
+                idSubPais: document.getElementById('idSubPais').value,
+                idCiudad: document.getElementById('idCiudad').value,
+                idTipoPago: document.getElementById('idTipoPago').value,
+                idFormaPago: document.getElementById('idFormaPago').value,
+                fechaNacimiento: document.getElementById('fechaNacimiento').value,
+                idVendedor: document.getElementById('idVendedor').value,
+                contacto: document.getElementById('contacto').value,
+                observaciones: document.getElementById('observaciones').value,
             };
 
             const token = localStorage.getItem("access_token");
             try {
-                const response = await fetch('/api/clientes/nuevo', {
+                const response = await fetch('/api/cliente', {
                     method: 'POST',
                     headers: {
                         "Authorization": `Bearer ${token}`,
@@ -328,10 +397,11 @@
                 });
 
                 if (response.ok) {
+                    const resultado = await response.json();
                     alert("Cliente guardado correctamente");
-                    cerrarModalAlta();
-                    cargarClientes(1);
+                    window.location.href = "/application/cliente/" + resultado.idcliente;
                 } else {
+                    console.log(response.error);
                     alert("Error al guardar el cliente");
                 }
             } catch (error) {
@@ -431,6 +501,84 @@
             document.getElementById('inputBusqueda').value = "";
             cargarClientes(1, "");
         }
+
+        function loadciudades(idciudad){
+            document.getElementById('idCiudad').innerHTML = "";
+            let idPais  = document.getElementById('idPais').value;
+            let idSubPais  = document.getElementById('idSubPais').value;
+            const token = localStorage.getItem('access_token');
+
+            fetch(`/api/ciudades/${idPais}/${idSubPais}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    }})
+            .then(response => response.json())
+            .then(data => {
+              const subSelect = document.getElementById('idCiudad');
+              subSelect.innerHTML = '<option value="">Seleccionar</option>';
+              data.forEach(sub => {
+                const option = document.createElement('option');
+                option.value = sub.idCiudad;
+                option.textContent = sub.nombre;
+                subSelect.appendChild(option);
+              });
+              if (idciudad) document.getElementById('idCiudad').value = idciudad;
+            })
+            .catch(err => console.error('Error cargando ciudades:', err));
+        }
+
+        function loadsubpaises(idsubpais,idciudad){
+            document.getElementById('idSubPais').innerHTML = "";
+            let idPais  = document.getElementById('idPais').value;
+            const token = localStorage.getItem('access_token');
+
+            fetch(`/api/subpaises/${idPais}`,{
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    }})
+            .then(response => response.json())
+            .then(data => {
+              const subSelect = document.getElementById('idSubPais');
+              subSelect.innerHTML = '<option value="">Seleccionar</option>';
+              data.forEach(sub => {
+                const option = document.createElement('option');
+                option.value = sub.idSubPais;
+                option.textContent = sub.nombre;
+                subSelect.appendChild(option);
+              });
+              if (idsubpais) document.getElementById('idSubPais').value = idsubpais;
+              loadciudades(idciudad);
+            })
+            .catch(err => console.error('Error cargando subtipos:', err));
+        }
+
+        document.getElementById('idTipoPago').addEventListener('change', function() {
+          const idTipoPago = this.value;
+
+          document.getElementById('idFormaPago').innerHTML = "";
+
+          if (!idTipoPago) return; // si no seleccionó nada, no hace nada
+
+          const token = localStorage.getItem('access_token');
+
+          fetch(`/api/forma_pago/${idTipoPago}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    }})
+            .then(response => response.json())
+            .then(data => {
+              const subSelect = document.getElementById('idFormaPago');
+              subSelect.innerHTML = '<option value="">Selecciona una forma pago</option>';
+
+              data.forEach(sub => {
+                const option = document.createElement('option');
+                option.value = sub.idFormaPago;
+                option.textContent = sub.descripcion;
+                subSelect.appendChild(option);
+              });
+            })
+            .catch(err => console.error('Error cargando subtipos:', err));
+        });
     </script>
 
     {% include '/application/chatia.html' %}

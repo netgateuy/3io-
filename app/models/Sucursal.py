@@ -5,3 +5,4 @@ class Sucursal(db.Model):
     idSucursal = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(32), unique=False)
     visible = db.Column(db.Boolean, unique=False)
+    notifications = db.Column(db.String(256), unique=False)

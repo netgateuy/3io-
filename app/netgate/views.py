@@ -14,6 +14,24 @@ import requests
 import smtplib
 import base64
 import json
+from zeep import Client
+from zeep.exceptions import Fault
+
+WSDL_URL = 'https://server2.gns-mas.com/sistema/2.0/interfase/netgate/server.php?wsdl' #GNS
+
+# Datos de autenticación comunes (según el WSDL se piden en cada llamada)
+AUTH_DATA = {
+    'empresa': 'netgate',
+    'usuario': 'interfase',
+    'password': 'Interfaz.2021'
+}
+
+try:
+    client = Client(wsdl=WSDL_URL)
+    client.service._binding_options['address'] = WSDL_URL
+except Exception as e:
+    print(f"Error cargando WSDL (verifica la URL o archivo): {e}")
+    exit()
 
 endpoint_payments = "https://payments.netgate.com.uy/siemprepago/"
 def send_mail(to,subject,body,cc,bcc,files,url_descarga,nm):
@@ -259,8 +277,17 @@ def enviar_antel():
                     contrato[field["name"]] = field["value"]
                     for extraf in field["extrafields"]:
                         contrato[extraf["name"]] = extraf["value"]
-
-                contrato["idcliente"] = oportunidad
+                contrato["clinombre"] = oportunidad["cliente"]["clinombre"]
+                contrato["cliapellido"] = oportunidad["cliente"]["cliapellido"]
+                contrato["clirazon"] = oportunidad["cliente"]["clirazon"]
+                contrato["idtipoid"] = oportunidad["cliente"]["clirazon"]
+                contrato["nroid"] = oportunidad["cliente"]["nroid"]
+                contrato["idtipoid"] = cliente["tipodocumento"]["idtipoid"]
+                contrato["emailaviso"] = cliente["emailaviso"]
+                contrato["idcliente"] = oportunidad["cliente"]["id"]
+                contrato["idoportunidad"] = oportunidad["id"]
+                contrato["idcontrato"] = contrato["id"]
+                contrato["idproducto"] = producto["id"]
 
                 #Hacemos un request from a seguridad.netgate.com.uy
                 url = "https://seguridadng.netgate.com.uy/adsl/api/solicitudes/add_solicitud.asp"
@@ -276,6 +303,124 @@ def enviar_antel():
             error=True,
             serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
         ), 500
+
+@netgate.route('/notificacion-cliente', methods=["POST"])
+def notificacion_cliente():
+    cliente = request.json
+    datos_entrada = {
+        **AUTH_DATA,
+
+        # --- Datos de Contacto ---
+        'manteCliRapContactNombre': str(cliente["clinombre"] or ''),
+        'manteCliRapContactApellido1': str(cliente["cliapellido"] or ''),
+        'manteCliRapContactCelular': str(cliente["clinombre"] or ''),
+        'manteCliRapContactTelefono': str(cliente["telefono"] or ''),
+        'manteCliRapContactEmail': str(cliente["email"] or ''),
+        'manteCliRapContactIdTipoContacto': '7',
+        'manteCliRapContactObservaciones': f"Localidad: {cliente["telefono"] or ''}",
+
+        # --- Dirección ---
+        'manteCliRapDircontitDireccion': str(cliente["direccion"] or ''),
+        'manteCliRapDircontitIdPais': str(cliente["pais"]["id"] or ''),
+        'manteCliRapDircontitIdDepartamento': '-1',  # Hardcodeado
+        'manteCliRapDircontitIdLocalidad': '-1',  # Hardcodeado
+        'manteCliRapDircontitZona': '-1',  # Hardcodeado
+
+        # --- Datos Cliente ---
+        'manteCliRapEMailGenerico': str(cliente["email"] or 'D'),  # En Java era c.getEmailAvisoFactura()
+        'manteCliRapIdTipoDocumento': str(cliente["tipoid"]["idexterno"]  or 'D'),
+        'manteCliRapNumeroDocumento': str(cliente["nroid"] or 'F'),
+        'manteCliRapNombreFantasia': str(cliente["clifantasia"] or cliente["clinombre"]),
+        'manteCliRapRazonSocial': str(cliente["clirazon"] or ''),
+        'manteCliRapNroCliente': str(cliente["idcliente"] or ''),
+        'manteCliRapTelefonoCliente': str(cliente["telefono"] or ''),
+        'manteCliRapTipo': str(cliente["tipoid"]["tipocli"] or ''),
+
+        # --- Flags y Constantes ---
+        'manteCliRapIndCliente': '1',
+        'manteCliRapIndProveedor': '',
+        'manteCliRapControlaAtraso': 'N',
+        'manteCliRapCobraMora': 'N',
+        'manteCliRapNroAgencia': '',
+
+        # --- Datos de Pago ---
+        'manteCliRapTitularPago': "",
+        'manteCliRapTipoPago': "",
+        'manteCliRapNroCuentaPago': "",
+        'manteCliRapFormaPago': str(cliente["formapago"]["idexterno"] or ''),
+        'manteCliRapFechaVmtoTarjeta': ""
+    }
+
+    respuesta = client.service.altaRapidaCliente(datosEnt=datos_entrada)
+
+    id_gns = respuesta.idCliente
+
+    return jsonify(
+        externalid=id_gns,
+        observation="Cliente dado de alta correctamente.",
+        msg=respuesta.msg,
+        serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+    ), 200
+
+@netgate.route('/notificacion-producto', methods=["POST"])
+def notificacion_producto():
+    try:
+        producto = request.json
+        if producto["event.type"] == "product.created":
+            #Damos de alta el producto
+            producto = request.json
+            datos_entrada = {
+                **AUTH_DATA,
+                'idCliente': str(producto["cliente"]["idexterno"]),
+                'manteDatServArticulo': str(producto["idproductoexterno"]),
+                'manteDatServMoneda': str(producto["moneda"]["idexterno"]),
+                'manteDatServMonto': str(producto["importe"]),
+                'manteDatServFechaDesde': str(producto["fechainicio"]),
+                'manteDatServFechaHasta': str(producto["fechafin"]),
+                'manteDatServPeriodicidad': str(producto["idperiodo"]),
+                'manteDatServDescripcion': str(producto["obs"])
+            }
+
+            try:
+                # Llamada al método SOAP
+                respuesta = client.service.altaServicio(datosEnt=datos_entrada)
+
+                return jsonify(
+                    externalid=respuesta.idServicio,
+                    observation="Servicio dado de alta correctamente.",
+                    serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+                ), 200
+
+            except Exception as e:
+                return jsonify(
+                    observation=str(e),
+                    serverdate=strftime("%Y-%m-%d %H:%M:%S", gmtime())
+                ), 500
+        elif producto["event.type"] == "product.updated":
+            datos_modificacion = {
+                **AUTH_DATA,  # Desempaqueta usuario, pass y empresa
+                'idServicio': str(producto["idservicioexterno"]),
+                'idMoneda': str(producto["moneda"]["idexterno"]),
+                'montoServicio': str(producto["importe"]),
+                'fechaDesde': str(producto["fechainicio"]),
+                'periServicio': str(producto["idperiodo"]),
+                'descServicio': str(producto["obs"])
+            }
+            respuesta = client.service.modificarServicio(datosEnt=datos_modificacion)
+            if respuesta:
+                if(producto["fechafin"] is None or len(producto["fechafin"]) == 0): producto["fechafin"] = "2800/10/10"
+                datos_baja = {
+                    **AUTH_DATA,
+                    'idServicio': str(producto["idservicioexterno"]),
+                    'fecha': str(producto["fechafin"])
+                }
+                obsfechafin = client.service.bajaServicio(datosEnt=datos_baja)
+                return jsonify({'externalid': str(producto["idservicioexterno"]), "status": "success", "mensaje": "Producto modificado correctamente", "observaciones": str(obsfechafin)})
+            else:
+                # Devuelves un JSON con error 500
+                return jsonify({"externalid": str(producto["idservicioexterno"]) , "status": "error", "mensaje": "Fallo en el webservice"}), 500
+    except Exception as e:
+        return str(e)
 
 @netgate.route('/notificar-cliente', methods=["POST"])
 def notificar_cliente():

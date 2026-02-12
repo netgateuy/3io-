@@ -28,6 +28,7 @@ class Cliente(db.Model):
     idFormaPago = db.Column(db.Integer, unique=False) #FormaPago
     eMailAviso = db.Column(db.String(2056), unique=False)
     idVendedor = db.Column(db.Integer, unique=False) #Vendedores
+    FechaNacimiento = db.Column(db.Date)
     FechaAlta = db.Column(db.DateTime)
     FechaBaja = db.Column(db.DateTime)
     idCausalBaja = db.Column(db.Integer, unique=False) #CausalesBaja
@@ -40,6 +41,9 @@ class Cliente(db.Model):
     fechaBajaGNS = db.Column(db.DateTime)
     bajaGNSPor = db.Column(db.String(256), unique=False)
     obsBajaGNS = db.Column(db.String(256), unique=False)
+    observaciones = db.Column(db.String(256), unique=False)
+    externalid = db.Column(db.String(256), unique=False)
+    status = db.Column(db.Integer)
 
 class TipoID(db.Model):
     idtipoid = db.Column(db.String(16), primary_key=True)

@@ -8,6 +8,7 @@ class Product(db.Model):
     name = db.Column(db.String(32), unique=False)
     externalid = db.Column(db.String(32), unique=False)
     description = db.Column(db.String(256), unique=False)
+    notifications = db.Column(db.String(256), unique=False)
     type = db.Column(db.String(256), unique=False)
     visible = db.Column(BIT(1))
 
@@ -15,6 +16,7 @@ class ProductField(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     idProduct = db.Column(db.Integer)
     name = db.Column(db.String(32), unique=False)
+    internalname = db.Column(db.String(32), unique=False)
     description = db.Column(db.String(256), unique=False)
     type = db.Column(db.String(256), unique=False)
     visible = db.Column(BIT(1))
@@ -48,6 +50,7 @@ class ProductFieldExtraValue(db.Model):
     idField = db.Column(db.Integer)
     idFieldValue = db.Column(db.Integer)
     name = db.Column(db.String(32), unique=False)
+    internalname = db.Column(db.String(32), unique=False)
     value = db.Column(db.Text, unique=False)
 
 class ProductFieldValue(db.Model):
@@ -102,11 +105,13 @@ class ProductClient(db.Model):
     idmoneda = db.Column(db.Integer)
     fechainicio = db.Column(db.Date)
     fechafin = db.Column(db.Date)
+    externalid = db.Column(db.String(256), unique=False)
     altapor = db.Column(db.String(256), unique=False)
     idperiodo = db.Column(db.Integer)
     importe = db.Column(db.Double)
     identificador = db.Column(db.Text, unique=False)
     observaciones = db.Column(db.Text, unique=False)
+    status = db.Column(db.Integer)
 
 class ContractProductFieldValue(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)

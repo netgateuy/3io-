@@ -253,7 +253,7 @@
             <div class="client-info-main">
                 <span class="client-id-tag">#CL-{{cliente.idCliente}}</span>
                 <h1>{{cliente.cliRazon}} {{cliente.cliNombre}} {{cliente.cliApellido}}</h1>
-                <p style="color: white; opacity: 0.9;"><i class="bi bi-geo-alt-fill"></i> {{cliente.Calle}} {{cliente.nroPuerta}} {{cliente.Apto}}</p>
+                <p style="color: white; opacity: 0.9;"><i class="bi bi-geo-alt-fill"></i> {{cliente.Calle}} {{cliente.nroPuerta}} {{cliente.Apto}} {{cliente.Manzana}} {{cliente.Solar}} {{cliente.Padron}}</p>
             </div>
             <div style="display: flex; gap: 10px;">
                 <button class="btn btn-edit" onclick="editarcliente({{cliente.idCliente}})"><i class="bi bi-pencil"></i> Editar</button>
@@ -266,6 +266,14 @@
                 <div class="info-item"><label>Teléfono</label><p>{{cliente.Telefono}} / {{cliente.Celular}}</p></div>
                 <div class="info-item"><label>Email Principal</label><p>{{cliente.eMailAviso}}</p></div>
                 <div class="info-item"><label>Vendedor</label><p>VR-{{cliente.idVendedor}} (Sin vendedor)</p></div>
+            </div>
+        </div>
+        <div class="glass-card">
+            <div class="info-grid">
+                <div class="info-item"><label>Forma Pago</label><p>{{tipopago.descripcion}} / {{formapago.descripcion}}</p></div>
+                <div class="info-item"><label>Fecha Nacimiento</label><p>{{cliente.FechaNacimiento}}</p></div>
+                <div class="info-item"><label>Contacto</label><p>{{cliente.Contacto}}</p></div>
+                <div class="info-item"><label>Observaciones</label><p>{{cliente.observaciones}}</p></div>
             </div>
         </div>
         <div class="glass-card">
@@ -529,6 +537,7 @@
             .then(response => response.json())
             .then(data => {
                 if(!data["error"]){
+                    console.log(data);
                     // En lugar de redirección, recargamos la tabla para ver el cambio
                     cerrarModal();
                     cargarPagina();

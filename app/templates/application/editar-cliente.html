@@ -28,32 +28,27 @@
             color: var(--font-dark);
         }
 
-        /* --- SIDEBAR --- */
-        .sidebar {
-            width: var(--sidebar-width);
-            background-color: var(--glass-bg-dark);
-            color: white;
-            height: 100vh;
-            position: fixed;
-            overflow-x: hidden;
-            padding-top: 20px;
-            backdrop-filter: blur(8px);
-            border-right: 1px solid rgba(255, 255, 255, 0.15);
-            z-index: 100;
-            transition: width var(--transition-speed) ease;
-            display: flex;
-            flex-direction: column;
-        }
+        /* --- SIDEBAR COMPLETO --- */
+        .sidebar { width: var(--sidebar-width); background-color: var(--glass-bg-dark); color: white; height: 100vh; position: fixed; overflow-x: hidden; padding-top: 20px; backdrop-filter: blur(8px); border-right: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 2px 0 15px rgba(0, 0, 0, 0.3); z-index: 100; transition: width var(--transition-speed) ease; display: flex; flex-direction: column; }
         .sidebar.closed { width: var(--sidebar-closed-width); }
 
-        .sidebar-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 20px 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; padding: 0 20px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); margin-bottom: 15px; width: var(--sidebar-width); transition: width var(--transition-speed) ease; }
+        .sidebar.closed .sidebar-header { width: var(--sidebar-closed-width); justify-content: center; padding: 0 0 20px 0; }
         .sidebar.closed .logo-container { display: none; }
+
+        .logo-container { background-color: var(--logo-bg); border-radius: 8px; padding: 5px; display: flex; align-items: center; justify-content: center; }
+        .logo-container img { max-height: 40px; width: auto; }
+
+        .toggle-btn { background: none; color: white; border: 1px solid rgba(255, 255, 255, 0.4); padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 1.2em; display: flex; align-items: center; justify-content: center; transition: transform var(--transition-speed) ease; }
+        .sidebar.closed .toggle-btn { transform: rotate(180deg); }
+
+        .menu ul { list-style: none; }
+        .menu li a { display: flex; align-items: center; padding: 12px 15px; text-decoration: none; color: #dbe4f1; border-radius: 8px; margin: 5px 10px; transition: 0.2s; }
+        .menu li a .bi { font-size: 1.3em; margin-right: 15px; width: 25px; text-align: center; }
+        .sidebar.closed .menu li a span { display: none; }
+        .sidebar.closed .menu li a { justify-content: center; padding: 12px 0; margin: 5px 15px; }
+        .menu li a.active { background-color: var(--primary-blue); box-shadow: 0 2px 8px rgba(0, 123, 255, 0.5); }
+        .menu li a:hover:not(.active) { background: rgba(255,255,255,0.1); }
 
         .menu ul { list-style: none; margin-top: 15px; }
         .menu li a {
@@ -181,27 +176,243 @@
             .form-grid { grid-template-columns: 1fr; }
             .form-group.span-2 { grid-column: span 1; }
         }
+         :root {
+            --sidebar-width: 260px;
+            --sidebar-closed-width: 80px;
+            --glass-bg-light: rgba(255, 255, 255, 0.8);
+            --glass-bg-dark: rgba(20, 37, 60, 0.85);
+            --primary-blue: #007bff;
+            --font-dark: #1e3a5f;
+            --font-light: #ffffff;
+            --shadow-soft: rgba(0, 0, 0, 0.15);
+            --transition-speed: 0.3s;
+            --logo-bg: rgba(255, 255, 255, 0.2);
+            --stage-color-prospecto: #FF9900;
+            --danger-red: #dc3545;
+            --success-green: #28a745;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #74a0e9 0%, #1f4788 100%);
+            display: flex;
+            min-height: 100vh;
+            color: var(--font-dark);
+        }
+
+        /* --- SIDEBAR COMPLETO --- */
+        .sidebar { width: var(--sidebar-width); background-color: var(--glass-bg-dark); color: white; height: 100vh; position: fixed; overflow-x: hidden; padding-top: 20px; backdrop-filter: blur(8px); border-right: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 2px 0 15px rgba(0, 0, 0, 0.3); z-index: 100; transition: width var(--transition-speed) ease; display: flex; flex-direction: column; }
+        .sidebar.closed { width: var(--sidebar-closed-width); }
+
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; padding: 0 20px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); margin-bottom: 15px; width: var(--sidebar-width); transition: width var(--transition-speed) ease; }
+        .sidebar.closed .sidebar-header { width: var(--sidebar-closed-width); justify-content: center; padding: 0 0 20px 0; }
+        .sidebar.closed .logo-container { display: none; }
+
+        .logo-container { background-color: var(--logo-bg); border-radius: 8px; padding: 5px; display: flex; align-items: center; justify-content: center; }
+        .logo-container img { max-height: 40px; width: auto; }
+
+        .toggle-btn { background: none; color: white; border: 1px solid rgba(255, 255, 255, 0.4); padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 1.2em; display: flex; align-items: center; justify-content: center; transition: transform var(--transition-speed) ease; }
+        .sidebar.closed .toggle-btn { transform: rotate(180deg); }
+
+        .menu ul { list-style: none; }
+        .menu li a { display: flex; align-items: center; padding: 12px 15px; text-decoration: none; color: #dbe4f1; border-radius: 8px; margin: 5px 10px; transition: 0.2s; }
+        .menu li a .bi { font-size: 1.3em; margin-right: 15px; width: 25px; text-align: center; }
+        .sidebar.closed .menu li a span { display: none; }
+        .sidebar.closed .menu li a { justify-content: center; padding: 12px 0; margin: 5px 15px; }
+        .menu li a.active { background-color: var(--primary-blue); box-shadow: 0 2px 8px rgba(0, 123, 255, 0.5); }
+        .menu li a:hover:not(.active) { background: rgba(255,255,255,0.1); }
+
+        /* --- CONTENT AREA --- */
+        .content { margin-left: var(--sidebar-width); flex-grow: 1; padding: 25px 30px; width: calc(100% - var(--sidebar-width)); transition: margin-left var(--transition-speed) ease, width var(--transition-speed) ease; }
+        .content.shifted { margin-left: var(--sidebar-closed-width); width: calc(100% - var(--sidebar-closed-width)); }
+
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; border-radius: 12px; background-color: var(--glass-bg-light); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 4px 30px var(--shadow-soft); margin-bottom: 30px; }
+        .navbar input { padding: 10px 15px; width: 300px; border: none; border-radius: 20px; background: white; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); }
+
+        /* --- PERFIL ESPECIFICO --- */
+        .glass-card { background-color: var(--glass-bg-light); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 4px 30px var(--shadow-soft); border-radius: 15px; padding: 25px; margin-bottom: 25px; }
+
+        .profile-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; }
+        .client-info-main h1 { color: white; margin-bottom: 5px; font-size: 1.8em; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .client-id-tag { background: var(--stage-color-prospecto); color: white; padding: 3px 10px; border-radius: 6px; font-weight: bold; font-size: 0.9em; display: inline-block; margin-bottom: 5px; }
+
+        .btn { padding: 10px 18px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .btn-edit { background: white; color: var(--font-dark); border: 1px solid rgba(0,0,0,0.1); }
+        .btn-add { background: var(--primary-blue); color: white; }
+
+        /* Botones de acción en tabla */
+        .btn-modify-light { background: rgba(0, 123, 255, 0.1); color: var(--primary-blue); border: 1px solid rgba(0, 123, 255, 0.2); padding: 6px 12px; font-size: 0.85em; margin-right: 5px; }
+        .btn-danger-light { background: rgba(220, 53, 69, 0.1); color: var(--danger-red); border: 1px solid rgba(220, 53, 69, 0.2); padding: 6px 12px; font-size: 0.85em; }
+
+        /* --- TABLA DE SERVICIOS --- */
+        .services-table { width: 100%; border-collapse: collapse; }
+        .services-table th { text-align: left; padding: 12px 15px; font-size: 0.8em; color: #666; text-transform: uppercase; border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .services-table td { padding: 15px; border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .services-table tr:hover { background: rgba(255,255,255,0.4); }
+
+        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75em; font-weight: bold; }
+        .status-active { background: rgba(40, 167, 69, 0.2); color: var(--success-green); }
+
+        /* --- PAGINACION --- */
+        .pagination-container { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(0,0,0,0.05); }
+        .pagination-btns { display: flex; gap: 5px; }
+        .page-btn { width: 35px; height: 35px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1); background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .page-btn.active { background: var(--primary-blue); color: white; border-color: var(--primary-blue); }
+        .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; }
+        .info-item label { display: block; font-size: 0.75em; color: #777; font-weight: bold; margin-bottom: 3px; }
+        .info-item p { font-weight: 500; font-size: 0.95em; }
+
+        /* Selector de cantidad (NUEVO) */
+        .limit-selector { padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1); background: white; font-size: 0.85em; outline: none; cursor: pointer; }
+
+        /* --- MODAL PARA EDICIÓN --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 1001; }
+        .modal-glass { background: var(--glass-bg-light); border: 1px solid rgba(255,255,255,0.5); border-radius: 15px; width: 400px; padding: 25px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        .modal-glass h3 { margin-bottom: 20px; font-size: 1.2em; color: var(--font-dark); }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 0.8em; font-weight: bold; margin-bottom: 5px; color: #555; }
+        .form-group input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1); outline: none; }
+
+        .form-field-embed { margin-bottom: 15px; }
+
+        .form-field-embed label {
+            display: block; font-weight: 600; color: var(--font-dark); font-size: 0.95em; margin-bottom: 5px;
+        }
+
+        .inner-glass-card {
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 15px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .inner-glass-card h4 { color: var(--font-dark); margin-bottom: 15px; }
+        .form-field-embed input,
+        .form-field-embed select,
+        .form-field-embed textarea {
+            width: 100%; padding: 10px; border: none; border-radius: 10px;
+            background-color: var(--glass-bg-form-input);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
+            font-size: 1em; color: var(--font-dark); transition: box-shadow 0.2s;
+        }
+        .form-field-embed input:focus, .form-field-embed select:focus, .form-field-embed textarea:focus {
+            outline: none; box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.4);
+        }
+         .form-field-display label {
+            display: block;
+            font-weight: 700;
+            color: #444;
+            font-size: 0.9em;
+            margin-bottom: 3px;
+        }
+        .form-field-display p {
+            font-size: 1.1em;
+            color: var(--font-dark);
+            background-color: rgba(0, 0, 0, 0.05);
+            padding: 8px;
+            border-radius: 5px;
+            word-break: break-word;
+        }
+        .modal-content {
+            background-color: var(--glass-bg-light);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 18px; padding: 30px; width: 90%; max-width: 500px;
+            box-shadow: 0 8px 30px var(--shadow-soft);
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        #scrollableContent::-webkit-scrollbar {
+            width: 6px;
+        }
+        #scrollableContent::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+        #scrollableContent::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .filter-group {
+            display: flex;
+            background: rgba(0, 0, 0, 0.05);
+            padding: 4px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .filter-btn {
+            padding: 6px 15px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 600;
+            color: var(--font-dark);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .filter-btn.active {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            color: var(--primary-blue);
+        }
+
+        .status-baja {
+            background: rgba(220, 53, 69, 0.2);
+            color: var(--danger-red);
+        }
+
+
+
+    /* 1. Forzar la tabla a no crecer horizontalmente */
+    .services-table {
+        table-layout: fixed;
+        width: 100%;
+    }
+
+    /* 2. Controlar la altura de las celdas */
+    .services-table td {
+        height: 45px;          /* Ajusta este valor al alto que desees */
+        padding: 8px 15px;     /* Reducimos un poco el padding vertical */
+        white-space: nowrap;   /* Evita que el texto salte de línea */
+        overflow: hidden;      /* Esconde lo que sobra */
+        text-overflow: ellipsis; /* Agrega los "..." si el texto es largo */
+        vertical-align: middle;
+    }
+
+    /* 3. Definir anchos específicos por columna para que no se amontonen */
+    /* Puedes ajustar los porcentajes según importancia */
+    .services-table th:nth-child(1), .services-table td:nth-child(1) { width: 80px; }  /* ID */
+    .services-table th:nth-child(2), .services-table td:nth-child(2) { width: 100px; } /* Producto */
+    .services-table th:nth-child(3), .services-table td:nth-child(3) { width: 150px; } /* Identificación */
+    .services-table th:nth-child(4), .services-table td:nth-child(4) { width: 120px; } /* Precio */
+    .services-table th:nth-child(5), .services-table td:nth-child(5) { width: 80px; } /* Estado */
+    .services-table th:nth-child(6), .services-table td:nth-child(6) { width: 110px; } /* F. Inicio */
+    .services-table th:nth-child(7), .services-table td:nth-child(7) { width: 110px; } /* F. Fin */
+    .services-table th:nth-child(8), .services-table td:nth-child(8) { width: 180px; } /* Acciones */
+
+    /* 4. Asegurar que los botones no estiren la fila */
+    .services-table .btn {
+        padding: 4px 8px;
+        font-size: 0.8em;
+    }
+
+
     </style>
 </head>
 <body>
-    <aside id="sidebar" class="sidebar">
-        <div class="sidebar-header">
-            <div class="logo-container">
-                <img src="/static/img/3ioplus.png" alt="Logo" style="max-height: 35px;">
-            </div>
-            <button id="toggleBtn" class="toggle-btn"><i class="bi bi-list"></i></button>
-        </div>
-        <nav class="menu">
-            <ul>
-                <li><a href="#"><i class="bi bi-speedometer2"></i> <span>Dashboard</span></a></li>
-                <li class="active"><a href="#"><i class="bi bi-people"></i> <span>Clientes</span></a></li>
-                <li><a href="#"><i class="bi bi-file-earmark-text"></i> <span>Contratos</span></a></li>
-                <hr style="margin: 10px 20px; opacity: 0.1;">
-                <li><a href="#"><i class="bi bi-gear"></i> <span>Configuración</span></a></li>
-                <li><a href="#"><i class="bi bi-box-arrow-right"></i> <span>Salir</span></a></li>
-            </ul>
-        </nav>
-    </aside>
+   {% include '/application/menu.html' %}
     <main id="content" class="content">
         <header class="navbar">
             <h2 style="font-size: 1.1em; color: var(--primary-blue);">CRM Business Manager</h2>
@@ -214,15 +425,10 @@
             <span class="client-id-tag">#CL-{{cliente.idCliente}}</span>
         </div>
         <form action="/update-cliente/{{cliente.id}}" method="POST" id="editClientForm">
-
             <input type="hidden" name="idCliente" value="{{cliente.idCliente}}">
             <div class="glass-card">
                 <div class="section-title"><i class="bi bi-person-vcard"></i> Identificaci&oacute;n</div>
                 <div class="form-grid">
-                    <div class="form-group span-2">
-                        <label>Razón Social</label>
-                        <input type="text" name="cliRazon" value="{{cliente.cliRazon}}" >
-                    </div>
                      <div class="form-group span-1">
                         <label>Nombre</label>
                         <input type="text" name="cliNombre" value="{{cliente.cliNombre}}" >
@@ -244,8 +450,16 @@
                         <input type="number" name="nroID" value="{{cliente.nroID}}" required>
                     </div>
                      <div class="form-group span-2">
+                        <label>Razón Social</label>
+                        <input type="text" name="cliRazon" value="{{cliente.cliRazon}}" >
+                    </div>
+                     <div class="form-group span-2">
                         <label>Fantas&iacute;a</label>
                         <input type="text" name="cliFantasia" value="{{cliente.cliFantasia}}" >
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha de Nacimiento</label>
+                        <input type="date" name="fechaNacimiento" value="{{ cliente.FechaNacimiento.strftime('%Y-%m-%d') if cliente.FechaNacimiento else '' }}" >
                     </div>
                 </div>
             </div>
@@ -288,9 +502,20 @@
                         <label>Apto</label>
                         <input type="text" name="Apto" value="{{cliente.Apto}}">
                     </div>
+                    <div class="form-group span-1">
+                        <label>Manzana</label>
+                        <input type="text" name="Manzana" value="{{cliente.Manzana}}">
+                    </div>
+                    <div class="form-group span-1">
+                        <label>Solar</label>
+                        <input type="text" name="Solar" value="{{cliente.Solar}}">
+                    </div>
+                     <div class="form-group span-1">
+                        <label>Padrón</label>
+                        <input type="text" name="Padron" value="{{cliente.Padron}}">
+                    </div>
                 </div>
             </div>
-
             <div class="glass-card">
                 <div class="section-title"><i class="bi bi-telephone"></i> Contacto</div>
                 <div class="form-grid">
@@ -306,9 +531,12 @@
                         <label>Email de Facturación / Avisos</label>
                         <input type="email" name="eMailAviso" value="{{cliente.eMailAviso}}" required>
                     </div>
+                    <div class="form-group">
+                        <label>Contacto</label>
+                        <input type="text" name="Contacto" value="{{cliente.Contacto}}">
+                    </div>
                 </div>
             </div>
-
             <div class="glass-card">
                 <div class="section-title"><i class="bi bi-receipt"></i> Facturación</div>
                 <div class="form-grid">
@@ -337,7 +565,6 @@
                         </select>
                     </div>
                 </div>
-
                 <div class="form-grid" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.05);">
                     <div class="form-group">
                         <label>Fecha Registro</label>
@@ -345,7 +572,7 @@
                     </div>
                     <div class="form-group span-2">
                         <label>Observaciones de Cliente</label>
-                        <input type="text" name="Contacto" value="{{cliente.Contacto}}" placeholder="Notas internas...">
+                        <input type="text" name="observaciones" value="{{cliente.observaciones}}" placeholder="Notas internas...">
                     </div>
                 </div>
             </div>
@@ -355,7 +582,6 @@
             </div>
         </form>
     </main>
-
     <script>
         const toggleBtn = document.getElementById('toggleBtn');
         const sidebar = document.getElementById('sidebar');
@@ -469,6 +695,7 @@
                     },
                     body: JSON.stringify(data)
                 });
+
                 const result = await response.json();
                 if (response.status === 200 && !result.error) {
                     alert("Cliente actualizado con éxito");

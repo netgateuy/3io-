@@ -45,7 +45,11 @@ def login():
 def clientes():
     try:
         sucursales = Sucursal.query.filter_by(visible=1).all()
-        return render_template('/application/clientes.html',sucursales=sucursales)
+        paises = Pais.query.all()
+        tipoids = TipoID.query.filter_by(visible=1).all()
+        tipo_pago = TipoPago.query.filter_by(visible=1).all()
+        vendedores = Vendedor.query.filter_by(visible=1).all()
+        return render_template('/application/clientes.html',sucursales=sucursales,paises=paises,tipoids=tipoids,tipo_pago=tipo_pago,vendedores=vendedores)
     except Exception as e:
         return str(e)
 
@@ -134,8 +138,10 @@ def cliente(idcliente):
     try:
         cliente = Cliente.query.filter_by(idCliente=idcliente).first()
         monedas = Moneda.query.filter_by(visible=1).all()
+        tipopago = TipoPago.query.filter_by(idTipoPago=cliente.idTipoPago).first()
+        formapago = FormaPago.query.filter_by(idTipoPago=cliente.idTipoPago,idFormaPago=cliente.idFormaPago).first()
         productos_filtrados = Product.query.filter_by(visible=True).all()
-        return render_template('/application/cliente.html',cliente=cliente,productos_filtrados=productos_filtrados,monedas=monedas)
+        return render_template('/application/cliente.html',cliente=cliente,productos_filtrados=productos_filtrados,monedas=monedas,tipopago=tipopago,formapago=formapago)
     except Exception as e:
         return str(e)
 
